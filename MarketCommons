@@ -627,22 +627,30 @@
 ;; |Make chunks from line| creates a new list of (usually but not always one) chunks from the given trimmed (initial) line.
 (	define [|Make chunks from line| trimmed]
 	[define sigil [string-ref trimmed 0]]
-	(	cond
-		(	[or [equal? sigil #\-] [hash-ref char=Section-type sigil #f]] ; this is a heading or section
-			(	let*
-				(	[matches [regexp-match #px"^((.)\\2*)(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\}\\s*)?(.*?)\\2*(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\})?\\s*$" trimmed]]
-					[level [string-length [second matches]]]
-					[section-attr [or [fourth matches] ""]]
-					[text [string-trim [fifth matches]]]
-					[heading-attr [or [sixth matches] ""]]
-				)
-				(	if [equal? sigil #\-] ; this is a heading / this is a section
-					[list [ParseHeading level heading-attr [string-append section-attr text]]]
-					(	if [or [non-empty-string? heading-attr] [non-empty-string? text]] ; this section has a heading / no heading
-						[list [ParseSection sigil level section-attr] [ParseHeading level heading-attr text]]
-						[list [ParseSection sigil level section-attr]]
-		)	)	)	)
-		[else [list [ParseBlock [list trimmed] #t]]] ; this is a block
+	(	if
+		(	and
+			[or [equal? sigil #\-] [hash-ref char=Section-type sigil #f]]
+			(	not
+				(	and
+					[> [string-length trimmed] 1]
+					[hash-ref char=Inline-type sigil #f]
+					[equal? [string-ref trimmed 1] #\|]
+				) ; sigil is an inline sigil followed by a pipe
+		)	) ; this is a heading or section
+		(	let*
+			(	[matches [regexp-match #px"^((.)\\2*)(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\}\\s*)?(.*?)\\2*(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\})?\\s*$" trimmed]]
+				[level [string-length [second matches]]]
+				[section-attr [or [fourth matches] ""]]
+				[text [string-trim [fifth matches]]]
+				[heading-attr [or [sixth matches] ""]]
+			)
+			(	if [equal? sigil #\-] ; this is a heading / this is a section
+				[list [ParseHeading level heading-attr [string-append section-attr text]]]
+				(	if [or [non-empty-string? heading-attr] [non-empty-string? text]] ; this section has a heading / no heading
+					[list [ParseSection sigil level section-attr] [ParseHeading level heading-attr text]]
+					[list [ParseSection sigil level section-attr]]
+		)	)	)
+		[list [ParseBlock [list trimmed] #t]] ; this is a block
 )	)
 
 ;; Chunkify adds a line to a provided list of chunks.
