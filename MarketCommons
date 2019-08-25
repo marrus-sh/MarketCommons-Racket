@@ -879,13 +879,13 @@
 					(	list
 						(	list*
 							[if video? 'video 'picture]
-							(	hash-map
-								(	if video?
+							(	if video?
+								(	hash-map
 									(	hash-set attributes 'aria-label
 										[or [hash-ref attributes 'aria-label #f] label]
-									)
-									attributes
-								)	list
+									)	list
+								)
+								'()
 							)
 							(	if [not [empty? sources]]
 								(	append
@@ -918,10 +918,12 @@
 													[list [list 'src src]]
 													(	if video?
 														[or [and type [list [list 'type type]]] '()]
-														(	list
-															[list 'alt label]
-															[list 'title label]
-								)	)	)	)	)	)	)
+														(	hash-map
+															(	hash-set attributes 'alt
+																[or [hash-ref attributes 'alt #f] label]
+															)	list
+														)
+								)	)	)	)	)	)
 								'()
 		)	)	)	)	)	)
 		(	[and [Inline? element] [equal? [Inline-type element] 'Comment]]

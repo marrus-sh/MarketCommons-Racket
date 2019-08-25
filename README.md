@@ -30,7 +30,7 @@ For example:
 
 Heading marks *must not* be immediately followed by a pipe.
 
--| This is a paragraph which starts with the string "-|".
+	-| This is a paragraph which starts with the string "-|".
 
 
 ## Sectioning Elements
@@ -45,7 +45,7 @@ For example:
 
 Sectioning marks *must not* be immediately followed by a pipe.
 
-$| This is a paragraph which starts with the string "$|".
+	$| This is a paragraph which starts with the string "$|".
 
 The available sectioning marks are as follows:
 
@@ -101,7 +101,7 @@ This character may be repeated at the beginning of following lines, in which cas
 
 Block sigils *must not* be immediately followed by a pipe.
 
-+| This is a paragraph which starts with the string "+|".
+	+| This is a paragraph which starts with the string "+|".
 
 Block elements (except for paragraphs) may contain other block elements by combining their sigils.
 For example, here is an unordered list item which contains multiple paragraphs:
@@ -212,7 +212,9 @@ The following inline elements are available:
 As a special case, if an anchor element is empty and it has an `href` attribute, that will be used as its contents:
 
 	@||@{!http://example.org}
-	is equivalent to
+
+…is equivalent to…
+
 	@|http://example.org|@{!http://example.org}
 
 
