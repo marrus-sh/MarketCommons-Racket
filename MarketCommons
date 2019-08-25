@@ -1,0 +1,1033 @@
+#! /usr/bin/env racket
+#lang racket
+[require xml]
+
+;; This script provides conversion from Market Commons markup into XML.
+;; It is written for clarity and simplicity, not efficiency, and may not be particularly fast.
+
+;; Usage:
+;; MarketCommons : Writes from stdin to stdout
+;; MarketCommons [input] : Writes from input to stdout
+;; MarketCommons [input] [output] : Writes from input to output
+
+;:: SIGIL CONVERSION TABLES ::;
+
+(	define char=Section-type
+	#hash(
+		[#\@ . Article]
+		[#\< . Aside]
+		[#\> . Blockquote]
+		[#\: . Div]
+		[#\_ . Footer]
+		[#\^ . Header]
+		[#\% . Nav]
+		[#\$ . Section]
+)	)
+
+(	define char=Block-type
+	#hash(
+		[#\] . Address]
+		[#\; . Comment]
+		[#\: . Div] ; Section sigils take precedence
+		[#\, . Definition] ; <dd>
+		[#\[ . Figure]
+		[#\= . FigureCaption]
+		[#\+ . Item]
+		[#\` . Literal] ; Directly output contents
+		[#\& . OrderedItem]
+		[#\. . Paragraph]
+		[#\? . Term] ; <dt>
+)	)
+
+(	define char=Inline-type
+	#hash(
+		[#\] . Abbr]
+		[#\@ . Anchor]
+		[#\# . Attn]
+		[#\~ . Code]
+		[#\; . Comment]
+		[#\- . Deletion]
+		[#\* . Emphasis]
+		[#\% . Highlight] ; <mark>
+		[#\! . Important] ; <strong>
+		[#\> . Input] ; <kbd>
+		[#\+ . Insertion]
+		[#\` . Literal] ; Directly output contents
+		[#\& . Media] ; <picture> or <video>
+		[#\/ . Offset] ; <i>
+		[#\< . Output] ; <samp>
+		[#\" . Quote]
+		[#\[ . Small]
+		[#\: . Span]
+		[#\= . Strikethrough]
+		[#\, . Subscript]
+		[#\^ . Superscript]
+		[#\' . Title] ; <cite>
+		[#\? . Term] ; <dfn>
+		[#\_ . Underline]
+		[#\$ . Variable]
+)	)
+
+(	define char=attname
+	#hash(
+		[#\? . about]
+		[#\. . class]
+		[#\~ . content]
+		[#\^ . datatype]
+		[#\! . href]
+		[#\# . id]
+		[#\@ . lang]
+		[#\, . property]
+		[#\> . rel]
+		[#\% . resource]
+		[#\< . rev]
+		[#\$ . style]
+		[#\& . src]
+		[#\* . tabindex]
+		[#\/ . title]
+		[#\` . type]
+		[#\; . typeof]
+		[#\= . role]
+)	)
+
+;:: CONVENIENCE PROCEDURES ::;
+
+;; |Attributes valid?| checks if attributes are a valid hash of symbol names and string values.
+;; Returns #t or #f.
+(	define [|Attributes valid?| attributes]
+	(	and
+		[hash? attributes]
+		[andmap symbol? [hash-keys attributes]]
+		[andmap string? [hash-values attributes]]
+)	)
+
+;:: DATA STRUCTURES ::;
+
+;; Heading is a list of Inline and string text contents which has been assigned a level and attributes.
+(	struct Heading [level attributes contents]
+	#:transparent
+	#:guard
+	(	λ [level attributes contents structtype]
+		(	if [integer? level]
+			(	if [|Attributes valid?| attributes]
+				(	if
+					(	and
+						[list? contents]
+						[andmap [λ [i] [or [Inline? i] [string? i]]] contents]
+					)
+					[values level attributes contents]
+					[error structtype "Heading content must be a list of Inlines or strings."]
+				)	[error structtype "Heading attributes must be a hash mapping symbols to strings."]
+			)	[error structtype "Heading level must be an integer."]
+)	)	)
+
+;; Section is a list of Heading, Section, or Block contents which have been assigned a level, type, and attributes.
+(	struct Section [type level attributes contents]
+	#:transparent
+	#:guard
+	(	λ [type level attributes contents structtype]
+		(	if [integer? level]
+			(	if [|Attributes valid?| attributes]
+				(	if
+					(	and
+						[list? contents]
+						[andmap [λ [i] [or [Heading? i] [Section? i] [Block? i]]] contents]
+					)
+					(	if
+						[symbol? type]
+						[values type level attributes contents]
+						[error structtype "Section type must be provided as a symbol."]
+					)	[error structtype "Section content must be a list of Headings, Sections, or Blocks."]
+				)	[error structtype "Section attributes must be a hash mapping symbols to strings."]
+			)	[error structtype "Section level must be an integer."]
+)	)	)
+
+;; Block is a list of Block, Inline, or string text contents which has been assigned a type and attributes.
+;; If a Block has openness, the string text has not been parsed yet (there will not be any Inlines) and the Blockʼs contents are far from set in stone.
+(	struct Block [type attributes contents openness]
+	#:transparent
+	#:guard
+	(	λ [type attributes contents openness structtype]
+		(	if [boolean? openness]
+			(	if [|Attributes valid?| attributes]
+				(	if
+					(	and
+						[list? contents]
+						[andmap [λ [i] [or [Block? i] [Inline? i] [string? i]]] contents]
+					)
+					(	if [symbol? type]
+						[values type attributes contents openness]
+						[error structtype "Block type must be provided as a symbol."]
+					)	[error structtype "Block content must be a list of Blocks, Inlines, or strings."]
+				)	[error structtype "Block attributes must be a hash mapping symbols to strings."]
+			)	[error structtype "Block openness must be a boolean."]
+)	)	)
+
+;; Inline is a list of Inline or string text contents which has been assigned a type and attributes.
+(	struct Inline [type attributes contents]
+	#:transparent
+	#:guard
+	(	λ [type attributes contents structtype]
+		(	if [|Attributes valid?| attributes]
+			(	if
+				(	and
+					[list? contents]
+					[andmap [λ [i] [or [Inline? i] [string? i]]] contents]
+				)
+				(	if [symbol? type]
+					[values type attributes contents]
+					[error structtype "Inline type must be provided as a symbol."]
+				)	[error structtype "Inline content must be a list of Inlines or strings."]
+			)	[error structtype "Inline attributes must be a hash mapping symbols to strings."]
+)	)	)
+
+;; Multimedia is a special Inline which also has a list of sources (either URIs or URI-type pairs).
+(	struct Multimedia Inline [sources]
+	#:transparent
+	#:guard
+	(	λ [type attributes contents sources structtype]
+		(	if
+			(	and
+				[list? sources]
+				[andmap [λ [i] [or [string? i] [and [pair? i] [string? [car i]] [symbol? [cdr i]]]]] sources]
+			)
+			[values type attributes contents sources]
+			[error structtype "Multimedia sources must be a list of strings or string-symbol pairs."]
+)	)	)
+
+;:: CONTAINERS FOR PARSING ::;
+
+;; ParseHeading is an unparsed text string of inline content which has been assigned a level, with an optional attributes string.
+(	struct ParseHeading [level attr text]
+	#:transparent
+	#:guard
+	(	λ [level attr text structtype]
+		(	if [integer? level]
+			(	if [string? attr]
+				(	if [string? text]
+					[values level attr text]
+					[error structtype "ParseHeading text must be a string."]
+				)
+				[error structtype "ParseHeading attr must be a string."]
+			)
+			[error structtype "ParseHeading level must be an integer."]
+)	)	)
+
+;; ParseSection is a sigil character, with an optional attributes string, which has been assigned a level.
+(	struct ParseSection [sigil level attr]
+	#:transparent
+	#:guard
+	(	λ [sigil level attr structtype]
+		(	if [integer? level]
+			(	if [string? attr]
+				(	if [char? sigil]
+					[values sigil level attr]
+					[error structtype "ParseSection sigil must be a char."]
+				)	[error structtype "ParseSection attr must be a string."]
+			)	[error structtype "ParseSection level must be an integer."]
+)	)	)
+
+;; ParseBlock is a sequence of nonempty unparsed lines of content.
+;; These lines may contain further blocks or attributes, who knows!!
+;; Its openness determines whether it can still be read into when further lines are encountered.
+(	struct ParseBlock [lines openness]
+	#:transparent
+	#:guard
+	(	λ [lines openness structtype]
+		(	if [boolean? openness]
+			(	if
+				(	and
+					[list? lines]
+					[andmap string? lines]
+				)
+				[values lines openness]
+				[error structtype "ParseBlock lines must be a list of strings."]
+			)	[error structtype "ParseBlock openness must be a boolean."]
+)	)	)
+
+;:: PARSING ::;
+
+;; text->plain collapses whitespace and replaces character escapes with the characters they represent.
+(	define [text->plain text]
+	(	regexp-replace* #px"\\s+" ; Whitespace
+		(	regexp-replace* #px"\\\\(?:.|[Uu]\\+[0-9A-Fa-f]+)\\\\" ; An escaped character
+			text
+			(	λ [match]
+				[define escaped [substring match 1 [- [string-length match] 1]]]
+				(	 if
+					[regexp-match? #rx"^[Uu]\\+" escaped] ; escaped is a unicode escape / escaped is a single character
+					[string [integer->char [string->number [substring escaped 2] 16]]]
+					escaped
+			)	)
+		)	" "
+)	)
+
+; |Mark elements| works through a text and generates a list of elements (as start-pos, end-pos pairs) which it contains.
+; While working, it keeps track of a list of currently open tags as char, start-pos pairs.
+; This process essentially just checking every pipe character and seeing if it is either:
+;
+; + A close tag for an existing open tag
+; + An open tag
+;
+; As a special case, a closing |` or |& tag will match the first, rather than most recent, opening `| tag
+(	define [|Mark elements| text [start-pos 1] [open-tags empty] [elements empty]]
+	[define next [regexp-match-positions #px"\\|" text start-pos]]
+	(	if next ; there is a further pipe / there are no more pipes in text
+		(	let*
+			(	[index [caar next]]
+				(	close-sigil
+					(	if [< index [sub1 [string-length text]]]
+						[string-ref text [add1 index]]
+						#f
+				)	)
+				(	open-match
+					(	and close-sigil
+						(	(	if [or [equal? close-sigil #\`] [equal? close-sigil #\&]] ; this is plaintext / this is nestable
+								[compose1 [λ [l] [if [empty? l] #f [last l]]] indexes-where]
+								index-where
+							)
+							open-tags
+							[λ [c] [equal? [car c] close-sigil]]
+				)	)	)
+				[open-sigil [string-ref text [sub1 index]]]
+			)
+			(	cond
+				(	open-match ; a currently open tag is closed
+					(	|Mark elements|
+						text
+						[+ index 2]
+						[drop open-tags [add1 open-match]]
+						[cons [cons [cdr [list-ref open-tags open-match]] [+ index 2]] elements]
+				)	)
+				(	(	and
+						[hash-ref char=Inline-type open-sigil #f]
+						[or [empty? elements] [not [equal? index [cdar elements]]]]
+					) ; a new tag is opened which does not overlap with the previous close tag
+					(	|Mark elements|
+						text
+						[add1 index]
+						[cons [cons open-sigil [sub1 index]] open-tags]
+						elements
+				)	)
+				(	else ; this pipe is not syntactic
+					(	|Mark elements|
+						text
+						[add1 index]
+						open-tags
+						elements
+		)	)	)	)
+		elements
+)	)
+
+;; string->attributes parses a string into a hash of symbol keys and string values.
+(	define [string->attributes text]
+
+	;; |Join attributes| joins two attribute values with a space between.
+	;; It avoids adding an unnecessary space when one of the values is empty.
+	(	define [|Join attributes| old new]
+		(	cond
+			(	(	and
+					[non-empty-string? old]
+					[non-empty-string? new]
+				) ; both old and new values are nonempty
+				[string-append old " " new]
+			)
+			[[non-empty-string? old] old] ; old is nonempty
+			[else new]
+	)	)
+
+	;; |Add attribute to hash| adds a single attribute/value pair to an attributes hash, given a string.
+	(	define [|Add attribute to hash| item hash]
+		(	cond
+			[[not [non-empty-string? item]] hash] ; item is empty
+			(	[regexp-match? #rx"[^\\\\]=|.=(?!\\\\)" item] ; item contains a name followed by an equals sign
+				(	let*
+					(	[split [string-split item "="]]
+						[attname [string->symbol [first split]]]
+						[value [string-join [rest split] "="]]
+					)
+					[hash-update hash attname [λ [i] [|Join attributes| i value]] ""]
+			)	)
+			(	else ; item is a shorthand
+				(	let*
+					(	[attname [hash-ref char=attname [string-ref item 0] '||]]
+						[value [if [equal? attname '||] "" [substring item 1]]]
+						[attname [if [equal? attname '||] [string->symbol item] attname]]
+					)
+					[hash-update hash attname [λ [i] [|Join attributes| i value]] ""]
+	)	)	)	)
+
+	[foldl |Add attribute to hash| #hash() [string-split [text->plain text]]]
+)
+
+;; Break simply replaces all double­‑pipes with inline breaks, taking a string and returning a list.
+(	define [Break text]
+	(	filter [λ [i] [or [Inline? i] [non-empty-string? i]]]
+		[add-between [string-split text "||" #:trim? #f] [Inline 'Break #hash() empty]]
+)	)
+
+;; Inlinify parses a string into a list of Inlines and strings.
+(	define
+	(	Inlinify
+		text
+		[start 0]
+		[end [string-length text]]
+		[elements [if [non-empty-string? text] [|Mark elements| text] '()]]
+		#:trim-right?
+		[trim-right? #t]
+	)
+	(	if [not [empty? elements]]
+		(	let*
+			(	[element-start [caar elements]]
+				[element-end [cdar elements]]
+				[sigil [string-ref text element-start]]
+				[type [hash-ref char=Inline-type sigil]]
+				[inner [takef [rest elements] [λ [i] [< element-start [car i]]]]]
+				[outer [drop [rest elements] [length inner]]]
+				[attr-match [regexp-match #px"^\\s*\\{((?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\)))\\}" text element-end end]]
+				[attr [if attr-match [first attr-match] ""]]
+				[attributes [if attr-match [string->attributes [second attr-match]] #hash()]]
+				(	after
+					(	string-trim
+						[substring text [+ element-end [string-length attr]] end]
+						#:left? #f
+						#:right? trim-right?
+			)	)	)
+			(	append
+				[Inlinify text start element-start outer #:trim-right? #f]
+				(	cond
+					(	[equal? type 'Media] ; the element is a media element
+						(	let*
+							(	[contents [substring text [+ element-start 2] [- element-end 2]]]
+								[types [string-split [hash-ref attributes 'type ""]]]
+								[attributes [hash-remove attributes 'type]]
+								(	contents
+									(	map [compose1 text->plain string-trim]
+										[string-split [string-trim contents] #px"(?<!\\\\)\\||\\|(?!\\\\)"]
+								)	)
+								[srcs [rest contents]]
+								[contents [first contents]]
+							)
+							(	list
+								(	Multimedia
+									type
+									attributes
+									[list contents]
+									(	apply map
+										(	cons [λ [s t] [if t [cons s [string->symbol t]] s]]
+											(	cond
+												(	[> [length srcs] [length types]] ; there are more srcs than types
+													[list srcs [append types [build-list [- [length srcs] [length types]] [const #f]]]]
+												)
+												(	[< [length srcs] [length types]] ; there are more types than srcs
+													[list srcs [take [length srcs] types]]
+												)
+												[else [list srcs types]] ; there are the same amount of srcs and types
+					)	)	)	)	)	)	)
+					(	[or [equal? type 'Comment] [equal? type 'Literal]] ; the element has plaintext contents
+						(	list
+							(	Inline
+								type
+								#hash() ; attributes are ignored
+								(	list
+									(	[if [equal? type 'Literal] identity string-trim]
+										[substring text [+ element-start 2] [- element-end 2]]
+					)	)	)	)	)
+					(	else ; the element is ordinary
+						(	list
+							(	Inline
+								type
+								attributes
+								(	if
+									(	and
+										[equal? type 'Anchor]
+										[equal? [+ element-start 2] [- element-end 2]]
+									) ; this is an anchor with no text / otherwise
+									(	let [[content [hash-ref attributes 'href ""]]]
+										[if [non-empty-string? content] [list content] '()]
+									)
+									[Inlinify text [+ element-start 2] [- element-end 2] inner]
+				)	)	)	)	)
+				(	if [non-empty-string? after]
+					[map [λ [i] [if [string? i] [text->plain i] i]] [Break after]]
+					'()
+		)	)	)
+		(	let [[contents [string-trim [substring text start end] #:right? trim-right?]]]
+			(	if [non-empty-string? contents]
+				[map [λ [i] [if [string? i] [text->plain i] i]] [Break contents]]
+				'()
+)	)	)	)
+
+;; ParseHeading->Heading parses a ParseHeading into a Heading.
+(	define [ParseHeading->Heading heading]
+	[define level [ParseHeading-level heading]]
+	[define attr [string-trim [ParseHeading-attr heading]]]
+	(	Heading
+		level
+		(	(	λ [h]
+				(	hash-set h 'aria-level
+					(	or
+						[hash-ref h 'aria-level #f]
+						[number->string level]
+			)	)	)
+			(	if [non-empty-string? attr]
+				[string->attributes [substring attr 1 [sub1 [string-length attr]]]]
+				#hash()
+		)	)
+		[Inlinify [ParseHeading-text heading]]
+)	)
+
+;; ParseSection->Section parses a ParseSection into an empty Section.
+(	define [ParseSection->Section section]
+	[define attr [string-trim [ParseSection-attr section]]]
+	(	Section
+		[hash-ref char=Section-type [ParseSection-sigil section]]
+		[ParseSection-level section]
+		(	if [non-empty-string? attr]
+			[string->attributes [substring attr 1 [sub1 [string-length attr]]]]
+			#hash()
+		)
+		empty
+)	)
+
+;; |Close block| parses the string contents of a block and then sets its openness to #f.
+(	define [|Close block| block]
+	[define contents [Block-contents block]]
+	(	if [Block-openness block] ; block is open / block has already been closed
+		(	struct-copy Block block
+			(	contents
+				(	apply append
+					(	map
+						(	λ [i]
+							(	if [string? i]
+								(	if [not [member [Block-type block] '(Comment Literal)]]
+									[Inlinify i]
+									[list i]
+								)
+								[list [|Close block| i]]
+						)	)
+						contents
+			)	)	)
+			[openness #f]
+		)
+		block
+)	)
+
+;; |Add line to contents| is a somewhat complicated accumulator function for adding a line of text into the proper place in a list of Block contents.
+;; This behaviour can be affected by the provided parent context—for example, a 'Paragraph parent will always return a string.
+(	define [|Add line to contents| line [contents '()] #:parent [parent 'Body]]
+	(	let*
+		(	[trimmed [string-trim line]]
+			(	type
+				(	if [non-empty-string? trimmed]
+					[hash-ref char=Block-type [string-ref trimmed 0] '||]
+					'||
+			)	)
+			(	type
+				(	if
+					(	or
+						(	and
+							[> [string-length trimmed] 1]
+							[hash-ref char=Inline-type [string-ref trimmed 0] #f]
+							[equal? [string-ref trimmed 1] #\|]
+						) ; sigil is an inline sigil followed by a pipe
+						(	and
+							[equal? parent 'Paragraph]
+							[or [empty? contents] [not [equal? type 'Paragraph]]]
+						) ; parent is a paragraph but sigil is not
+						(	and
+							[equal? parent 'Comment]
+							[or [empty? contents] [not [equal? type 'Comment]]]
+						) ; parent is a comment but sigil is not
+						(	and
+							[equal? parent 'Literal]
+							[or [empty? contents] [not [equal? type 'Literal]]]
+						) ; parent is a literal but sigil is not
+						[and [equal? type 'FigureCaption] [not [equal? parent 'Figure]]] ; this is a figure caption but parent is not a figure
+					) ; sigil is invalid / sigil is valid
+					'||
+					type
+			)	)
+			[inner [if [equal? type '||] trimmed [string-trim [substring trimmed 1]]]]
+			(	type
+				(	if
+					(	and
+						[equal? parent 'Body]
+						[equal? type '||]
+						[non-empty-string? trimmed]
+					) ; this is a top­‑level untyped nonempty string
+					'Paragraph
+					type
+		)	)	)
+		(	if [empty? contents] ; there are no existing contents / existing contents were provided
+			(	if [equal? type '||] ; this is an untyped string / this is a typed block
+				[if [non-empty-string? inner] [list inner] '()]
+				(	let*
+					(	(	attr
+							(	first
+								(	or
+									[regexp-match #px"^\\s*\\{((?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\)))\\}" inner]
+									[list ""]
+						)	)	)
+						[text [substring inner [string-length attr]]]
+						[attr [string-trim attr]]
+					)
+					(	list
+						(	Block
+							type
+							(	if [non-empty-string? attr]
+								[string->attributes [substring attr 1 [sub1 [string-length attr]]]]
+								#hash()
+							)
+							[|Add line to contents| text #:parent type]
+							#t
+			)	)	)	)
+			(	let
+				(	[latest [last contents]]
+					(	text
+						(	if [equal? type parent] ; trimmed begins with an unnecessary sigil / all of trimmed is significant
+							inner
+							trimmed
+				)	)	)
+				(	cond
+					(	[and [Block? latest] [Block-openness latest]] ; latest is an open Block
+						(	let [[parent [Block-type latest]]]
+							(	append
+								[drop-right contents 1]
+								(	list
+									(	if [non-empty-string? text] ; text is more content / text is a blank line
+										(	struct-copy Block latest
+											[contents [|Add line to contents| text [Block-contents latest] #:parent parent]]
+										)
+										[|Close block| latest]
+					)	)	)	)	)
+					(	[string? latest] ; latest is a string
+						(	if  [non-empty-string? text] ; text has contents / text is a blank line
+							[append [drop-right contents 1] [list [string-append latest "\n" text]]]
+							contents
+					)	)
+					(	else ; latest is a closed Block
+						[append contents [|Add line to contents| text #:parent parent]]
+)	)	)	)	)	)
+
+;; ParseBlock->Block parses a ParseBlock into a Block.
+(	define [ParseBlock->Block block]
+	[define lines [ParseBlock-lines block]]
+	[define container [first [|Add line to contents| [first lines]]]]
+	(	|Close block|
+		(	struct-copy Block
+			container
+			(	contents
+				(	foldl
+					[curry |Add line to contents| #:parent [Block-type container]]
+					[Block-contents container]
+					[rest lines]
+)	)	)	)	)
+
+;; |Make chunks from line| creates a new list of (usually but not always one) chunks from the given trimmed (initial) line.
+(	define [|Make chunks from line| trimmed]
+	[define sigil [string-ref trimmed 0]]
+	(	cond
+		(	[or [equal? sigil #\-] [hash-ref char=Section-type sigil #f]] ; this is a heading or section
+			(	let*
+				(	[matches [regexp-match #px"^((.)\\2*)(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\}\\s*)?(.*?)\\2*(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\})?\\s*$" trimmed]]
+					[level [string-length [second matches]]]
+					[section-attr [or [fourth matches] ""]]
+					[text [string-trim [fifth matches]]]
+					[heading-attr [or [sixth matches] ""]]
+				)
+				(	if [equal? sigil #\-] ; this is a heading / this is a section
+					[list [ParseHeading level heading-attr [string-append section-attr text]]]
+					(	if [or [non-empty-string? heading-attr] [non-empty-string? text]] ; this section has a heading / no heading
+						[list [ParseSection sigil level section-attr] [ParseHeading level heading-attr text]]
+						[list [ParseSection sigil level section-attr]]
+		)	)	)	)
+		[else [list [ParseBlock [list trimmed] #t]]] ; this is a block
+)	)
+
+;; Chunkify adds a line to a provided list of chunks.
+(	define [Chunkify line chunks]
+	[define trimmed [string-trim line]]
+	(	if [empty? chunks] ; this is the first line / this is a later line
+		(	if [non-empty-string? trimmed] ; trimmed has content / trimmed is empty
+			[|Make chunks from line| trimmed]
+			chunks
+		)
+		(	let [[latest [last chunks]]]
+			(	if [and [ParseBlock? latest] [ParseBlock-openness latest]] ; latest is an open ParseBlock / latest is closed
+				(	append
+					[drop-right chunks 1]
+					(	list
+						(	if [non-empty-string? trimmed] ; trimmed is more block content / trimmed is a blank line
+							[struct-copy ParseBlock latest [lines [append [ParseBlock-lines latest] [list trimmed]]]]
+							[struct-copy ParseBlock latest [openness #f]]
+						)
+					)
+				)
+				(	if [non-empty-string? trimmed] ; trimmed has content / trimmed is empty
+					[append chunks [|Make chunks from line| trimmed]]
+					chunks
+)	)	)	)	)
+
+;; |Add chunk to contents| adds a chunk in the proper position in a Sectionʼs contents.
+(	define [|Add chunk to contents| chunk contents]
+	(	define parsed
+		(	cond
+			[[ParseHeading? chunk] [ParseHeading->Heading chunk]]
+			[[ParseSection? chunk] [ParseSection->Section chunk]]
+			[[ParseBlock? chunk] [ParseBlock->Block chunk]]
+			[else chunk]
+	)	)
+	(	if
+		[empty? contents] ; this is the first chunk / this is a later chunk
+		[list parsed]
+		(	let
+			[[latest [last contents]]]
+			(	if
+				(	and
+					[Section? latest]
+					(	or
+						[not [Section? parsed]]
+						(	<
+							[Section-level latest]
+							[Section-level parsed]
+				)	)	) ; parsed should be nested inside the latest section / parsed belongs at the top level
+				(	append
+					[drop-right contents 1]
+					(	list
+						(	struct-copy
+							Section latest
+							(	contents
+								(	|Add chunk to contents|
+									parsed
+									[Section-contents latest]
+					)	)	)	)
+				)
+				[append contents [list parsed]]
+)	)	)	)
+
+;; market takes a string source and returns a 'Body Section.
+(	define [market source]
+	(	Section 'Body 0 #hash()
+		(	foldl |Add chunk to contents| empty
+			[foldl Chunkify empty [regexp-split #rx"\r\n|\r\x85|\x85|\u2028|\r|\n" source]]
+)	)	)
+
+;:: XML CONVERSION TABLES ::;
+
+(	define Section-type=xml-symbol
+	#hash(
+		[Article . article]
+		[Aside . aside]
+		[Blockquote . blockquote]
+		[Body . body]
+		[Div . div]
+		[Footer . footer]
+		[Header . header]
+		[Nav . nav]
+		[Section . section]
+)	)
+
+(	define Block-type=xml-symbol
+	#hash(
+		[Address . address]
+		[Definition . dd]
+		[Div . div]
+		[Figure . figure]
+		[FigureCaption . figcaption]
+		[Item . li]
+		[OrderedItem . li]
+		[Paragraph . p]
+		[Term . dt]
+)	)
+
+(	define Inline-type=xml-symbol
+	#hash(
+		[Abbr . abbr]
+		[Anchor . a]
+		[Attn . b]
+		[Break . br]
+		[Code . code]
+		[Deletion . del]
+		[Emphasis . em]
+		[Highlight . mark]
+		[Important . strong]
+		[Input . kbd]
+		[Insertion . ins]
+		[Offset . i]
+		[Output . samp]
+		[Quote . q]
+		[Small . small]
+		[Span . span]
+		[Strikethrough . s]
+		[Subscript . sub]
+		[Superscript . sup]
+		[Title . cite]
+		[Term . dfn]
+		[Underline . u]
+		[Variable . var]
+)	)
+
+;:: XML GENERATION ::;
+
+;; |Add element to xexpr| adds an element to the proper place within an existing xexpr.
+;; level, if provided, determines the indentation level.
+;; xexpr must be a nonempty list if element is not a Section.
+(	define [|Add element to xexpr| element xexpr #:level [level 0]]
+	(	cond
+		(	[Heading? element]
+			(	append xexpr
+				(	list
+					[string-append "\n" [make-string level #\tab]]
+					(	foldl |Add element to xexpr|
+						(	list
+							'h1
+							[hash-map [Heading-attributes element] list]
+						)	[Heading-contents element]
+		)	)	)	)
+		(	[Section? element]
+			(	let
+				(	(	secx
+						(	append
+							(	foldl
+								[curry |Add element to xexpr| #:level [Section-level element]]
+								(	list
+									[hash-ref Section-type=xml-symbol [Section-type element]]
+									[hash-map [Section-attributes element] list]
+								)	[Section-contents element]
+							)
+							[list [string-append "\n" [make-string level #\tab]]]
+				)	)	)
+				(	if [empty? xexpr]
+					secx
+					(	append xexpr
+						(	list
+							[string-append "\n" [make-string level #\tab]]
+							secx
+		)	)	)	)	)
+		(	[and [Block? element] [equal? [Block-type element] 'Comment]]
+			(	let [[contents [apply string-append [Block-contents element]]]]
+				(	append xexpr
+					(	if [non-empty-string? contents] ; comment has contents / comment is empty
+						(	list
+							[string-append "\n" [make-string level #\tab]]
+							(	comment
+								(	string-append "\n"
+									contents
+									"\n" [make-string level #\tab]
+						)	)	)
+						'("") ; to prevent list continuation
+		)	)	)	)
+		(	[and [Block? element] [equal? [Block-type element] 'Literal]]
+			(	append xexpr
+				[list [string-append "\n" [make-string level #\tab]] element]
+		)	)
+		(	[Block? element]
+			(	let*
+				(	[type [Block-type element]]
+					[sub? [and [member type '(Definition Term Item OrderedItem)] #t]]
+					[level [[if sub? add1 identity] level]]
+					(	appendix
+						(	list
+							[string-append "\n" [make-string level #\tab]]
+							(	foldl
+								[curry |Add element to xexpr| #:level [add1 level]]
+								(	list
+									[hash-ref Block-type=xml-symbol type]
+									[hash-map [Block-attributes element] list]
+								)	[Block-contents element]
+				)	)	)	)
+				(	if sub? ; this is a sub­‑element
+					(	(	λ [p x]
+							(	if
+								(	and
+									[list? [last xexpr]]
+									[equal? [first [last xexpr]] p]
+								) ; the last X­‑expression is of the correct type
+								(	list-update x [sub1 [length x]]
+									[λ [l] [append l appendix]]
+								)
+								(	append xexpr
+									(	list
+										[string-append "\n" [make-string [sub1 level] #\tab]]
+										[append [list p '()] appendix]
+						)	)	)	)
+						(	cond
+							[[equal? type 'Item] 'ul]
+							[[equal? type 'OrderedItem] 'ol]
+							[else 'dl]
+						)	xexpr
+					)
+					[append xexpr appendix]
+		)	)	)
+		(	[Multimedia? element]
+			(	let*
+				(	[sources [Multimedia-sources element]]
+					[first-type [if [and [not [empty? sources]] [pair? [first sources]]] [cdr [first sources]] #f]]
+					(	video?
+						(	and
+							first-type
+							(	not
+								(	or
+									[equal? first-type 'image]
+									[string-prefix? [symbol->string first-type] "image/"]
+					)	)	)	)
+					[attributes [Inline-attributes element]]
+					[label [apply string-append [Inline-contents element]]]
+				)
+				(	append xexpr
+					(	list
+						(	list*
+							[if video? 'video 'picture]
+							(	hash-map
+								(	if video?
+									(	hash-set attributes 'aria-label
+										[or [hash-ref attributes 'aria-label #f] label]
+									)
+									attributes
+								)	list
+							)
+							(	if [not [empty? sources]]
+								(	append
+									(	map
+										(	λ [s]
+											(	let*
+												(	[src [[if [pair? s] car identity] s]]
+													[type [if [pair? s] [symbol->string [cdr s]] #f]]
+												)
+												(	list
+													'source
+													(	cons
+														(	if video?
+															[list 'src src]
+															[list 'srcset src]
+														)
+														[or [and type [list [list 'type type]]] '()]
+										)	)	)	)
+										[drop-right sources 1]
+									)
+									(	list
+										(	let*
+											(	[source [last sources]]
+												[src [[if [pair? source] car identity] source]]
+												[type [if [pair? source] [symbol->string [cdr source]] #f]]
+											)
+											(	list
+												[if video? 'source 'img]
+												(	append
+													[list [list 'src src]]
+													(	if video?
+														[or [and type [list [list 'type type]]] '()]
+														(	list
+															[list 'alt label]
+															[list 'title label]
+								)	)	)	)	)	)	)
+								'()
+		)	)	)	)	)	)
+		(	[and [Inline? element] [equal? [Inline-type element] 'Comment]]
+			(	append xexpr
+				[list [comment [apply string-append [Inline-contents element]]]]
+		)	)
+		(	[and [Inline? element] [equal? [Inline-type element] 'Literal]]
+			[append xexpr [list element]]
+		)
+		(	[Inline? element]
+			(	append xexpr
+				(	list
+					(	foldl |Add element to xexpr|
+						(	list
+							[hash-ref Inline-type=xml-symbol [Inline-type element]]
+							[hash-map [Inline-attributes element] list]
+						)	[Inline-contents element]
+		)	)	)	)
+		[else [append xexpr [list element]]]
+)	)
+
+;; market->xexpr converts a Common Market internal representation into an X­‑expression.
+;; The expression will only be valid if the document does not contain any literals.
+;; Otherwise it will contain non–X­‑expression 'Literal Inline structs.
+(	define [market->xexpr market-commons]
+	[|Add element to xexpr| market-commons empty]
+)
+
+;; market-string->xexpr converts a Common Market document into an X­‑expression.
+;; The expression will only be valid if the document does not contain any literals.
+;; Otherwise it will contain non–X­‑expression 'Literal Inline structs.
+[define market-string->xexpr [compose1 market->xexpr market]]
+
+;; |Add to attributes| adds the key­‑value attr-list to the beginning of the attr-str, preceded by a space.
+(	define [|Add to attributes| attr-list attr-str]
+	[string-append " " [symbol->string [first attr-list]] "=\"" [xml-attribute-encode [last attr-list]] "\"" attr-str]
+)
+
+;; market-xexpr->xml converts an X-expression which may contain 'Literal Inlines into an XML string.
+;; We canʼt use the xml library because it wonʼt know how to handle our literals.
+;; Thankfully, our xexprs are much simpler in form.
+(	define [market-xexpr->xml xexpr]
+	(	cond
+		(	[list? xexpr]
+			(	let [[tagname [first xexpr]]]
+				(	string-append
+					"<"
+					[symbol->string tagname]
+					[foldl |Add to attributes| "" [second xexpr]]
+					(	if [member tagname '(br img source)]
+						"/>"
+						(	apply string-append
+							(	append '(">")
+								(	if [> [length xexpr] 2]
+									[map market-xexpr->xml [drop xexpr 2]]
+									'()
+								)
+								[list "</" [symbol->string tagname] ">"]
+		)	)	)	)	)	)
+		[[string? xexpr] [xml-attribute-encode xexpr]]
+		[[comment? xexpr] [string-append "<!-- " [comment-text xexpr] " -->"]]
+		[[Block? xexpr] [apply string-append [Block-contents xexpr]]]
+		[[Inline? xexpr] [apply string-append [Inline-contents xexpr]]]
+)	)
+
+;; market->xml converts a Market Commons internal representation to an XML string.
+[define market->xml [compose1 market-xexpr->xml market->xexpr]]
+
+;; market-string->xml converts a Market Commons string to an XML one.
+[define market-string->xml [compose1 market-xexpr->xml market-string->xexpr]]
+
+;:: COMMAND LINE ::;
+
+(	command-line
+	#:args args
+	(	let*
+		(	(	source
+				(	if [and [positive? [length args]] [not [equal? [first args] "-"]]]
+					[call-with-input-file [first args] port->string]
+					[port->string]
+			)	)
+			[headed? [regexp-match? #px"(?:\r\n|\r\x85|\x85|\u2028|[\r\n \t])*<" source]]
+			(	head-break-position
+				(	or
+					(	and
+						headed?
+						[regexp-match-positions #px"(?:\r\n|\r\x85|\x85|\u2028|\r|\n){2}" source]
+					)
+					'((0 . 0))
+			)	)
+			[head [substring source 0 [caar head-break-position]]]
+			[body [substring source [cdar head-break-position]]]
+			[output [if [> [length args] 1] [second args] "-"]]
+		)
+		(	(	λ [o]
+				(	if [not [equal? output "-"]]
+					[with-output-to-file output o #:exists 'replace]
+					[o]
+				)
+			)
+			(	λ []
+				(	write-string
+					(	string-append
+						"<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\n<head>\n"
+						head
+						"\n</head>\n"
+						[market-string->xml body]
+						"\n</html>\n"
+)	)	)	)	)	)
