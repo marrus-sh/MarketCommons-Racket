@@ -1,8 +1,3 @@
-attributes:
-- beginString: "(?<=[^\\\\])\\{|\\{(?=[^\\\\])"
-  regularExpression: true
-  description: "Attribute block"
-  endString: "(?<=[^\\\\])\\}|\\}(?=[^\\\\])"
 outlineMenu:
 - beginString: "^([-@<>:_^%$])[ \\t]*(?:\\{.*?\\}[ \\t])?((?:(?!\\1).)+?)[ \\t]*\\1*[
     \\t]*(?:\\{.*?\\}[ \\t]*)?$"
@@ -30,83 +25,72 @@ outlineMenu:
     \\t]*(?:\\{.*?\\}[ \\t]*)?$"
   keyString: "                    $2"
   description: "h6"
-extensions:
-- keyString: "market"
+keywords:
+- beginString: "!|"
+  description: "strong"
+  endString: "|!"
+- beginString: "\"|"
+  description: "q"
+  endString: "|\""
+- beginString: "'|"
+  description: "cite"
+  endString: "|'"
+- beginString: "*|"
+  description: "em"
+  endString: "|*"
+- beginString: "+|"
+  description: "ins"
+  endString: "|+"
+- beginString: "-|"
+  description: "del"
+  endString: "|-"
+- beginString: "@|"
+  description: "a"
+  endString: "|@"
+- beginString: "^[ \\t]*[\\],?=\\[&+\\.;`](?:[ \\t]*[\\],?=\\[&+\\.;`:])*"
+  regularExpression: true
+  description: "block"
+comments: []
 metadata:
   version: "0.1.0"
   author: "kibigo!"
   lastModified: "2019-08-23"
-completions: []
-keywords:
-- beginString: "!|"
-  endString: "|!"
-  description: "strong"
-- beginString: "\"|"
-  endString: "|\""
-  description: "q"
-- beginString: "'|"
-  endString: "|'"
-  description: "cite"
-- beginString: "*|"
-  endString: "|*"
-  description: "em"
-- beginString: "+|"
-  endString: "|+"
-  description: "ins"
-- beginString: "-|"
-  endString: "|-"
-  description: "del"
-- beginString: "@|"
-  endString: "|@"
-  description: "a"
-- beginString: "^[ \\t]*[\\],?=\\[&+\\.;`](?:[ \\t]*[\\],?=\\[&+\\.;`:])*"
-  description: "block"
-  regularExpression: true
-types:
-- beginString: "^[-@<>:_^%$]+"
-  regularExpression: true
-  endString: "$"
-  description: "section/heading"
 values:
 - regularExpression: true
   beginString: "&\\|[^|]*\\|"
   endString: "[^ \\t|][ \\t]*\\|&"
   description: "media"
-commands:
-- beginString: "#|"
-  endString: "|#"
-  description: "b"
-- beginString: "%|"
-  endString: "|%"
-  description: "mark"
-- beginString: ",|"
-  description: "sub"
-  endString: "|,"
-- beginString: "/|"
-  endString: "|/"
-  description: "i"
-- beginString: ":|"
-  description: "span"
-  endString: "|:"
-- beginString: "=|"
-  endString: "|="
-  description: "s"
-- beginString: "[|"
-  description: "small"
-  endString: "|["
-- beginString: "]|"
-  description: "abbr"
-  endString: "|]"
-- beginString: "^|"
-  description: "sup"
-  endString: "|^"
-- beginString: "_|"
-  description: "u"
-  endString: "|_"
+extensions:
+- keyString: "market"
+completions: []
+variables:
+- beginString: "$|"
+  endString: "|$"
+  description: "var"
+- beginString: "?|"
+  description: "dfn"
+  endString: "|?"
 commentDelimiters:
   endDelimiter: "|;"
   beginDelimiter: ";|"
-comments: []
+strings:
+- beginString: "`|"
+  regularExpression: false
+  description: "Literal"
+  endString: "|`"
+attributes:
+- beginString: "(?<=[^\\\\])\\{|\\{(?=[^\\\\])"
+  regularExpression: true
+  description: "Attribute block"
+  endString: "(?<=[^\\\\])\\}|\\}(?=[^\\\\])"
+types:
+- beginString: "^[ \\t]*/+[ \\t]*$"
+  regularExpression: true
+  description: "end section"
+- beginString: "^[ \\t]*[-@<>:_^%$]+"
+  regularExpression: true
+  endString: "$"
+  description: "section/heading"
 characters:
 - beginString: "<|"
   regularExpression: false
@@ -120,11 +104,6 @@ characters:
   regularExpression: false
   description: "code"
   endString: "|~"
-strings:
-- beginString: "`|"
-  regularExpression: false
-  description: "Literal"
-  endString: "|`"
 numbers:
 - beginString: "\\\\(?=(?:.|U\\+[0-9A-F]+)\\\\)"
   regularExpression: true
@@ -135,10 +114,34 @@ numbers:
   regularExpression: true
   endString: "(?<=\\|)\\|"
   description: "br"
-variables:
-- beginString: "$|"
-  description: "var"
-  endString: "|$"
-- beginString: "?|"
-  endString: "|?"
-  description: "dfn"
+commands:
+- beginString: "#|"
+  description: "b"
+  endString: "|#"
+- beginString: "%|"
+  description: "mark"
+  endString: "|%"
+- beginString: ",|"
+  endString: "|,"
+  description: "sub"
+- beginString: "/|"
+  description: "i"
+  endString: "|/"
+- beginString: ":|"
+  endString: "|:"
+  description: "span"
+- beginString: "=|"
+  description: "s"
+  endString: "|="
+- beginString: "[|"
+  endString: "|["
+  description: "small"
+- beginString: "]|"
+  endString: "|]"
+  description: "abbr"
+- beginString: "^|"
+  endString: "|^"
+  description: "sup"
+- beginString: "_|"
+  endString: "|_"
+  description: "u"

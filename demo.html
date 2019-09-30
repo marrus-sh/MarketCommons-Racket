@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<title>Market Commons Demo</title>
+	<meta charset="utf-8"/>
+	<style>
+body { Max-Width: 31EM }
+h1 { Color: Red }
+p { Text-Align: Justify }
+	</style>
+</head>
+<body>
+<!-- 
+A demo page written in Market Commons markup.
+This page is specifically written to test edge­‑cases; it is not a general introduction.
+ -->
+<article>
+	<h1 aria-level="1">Market Commons Demo</h1>
+	<section>
+		<h1 aria-level="2">Basics</h1>
+		<p>A single character escape: |. Many: \\. Unicode: i; ❤.</p>
+		<p>A line break: <br/>. This produces an empty span, not a line break: <span></span>.</p>
+	</section>
+	<section>
+		<h1 aria-level="2">Sectioning and Headings</h1>
+		<h1 aria-level="3">Headings can be used on their own without creating a new section.</h1>
+		<blockquote>
+			<p>A blockquote with no title. Sections can immediately begin on the line following their marks.</p>
+		</blockquote>
+		<aside>
+			<h1 aria-level="3">Aside</h1>
+		</aside>
+		<footer>
+			<h1 aria-level="3">Footer</h1>
+		</footer>
+		<header>
+			<h1 aria-level="3">Header</h1>
+		</header>
+		<nav>
+			<h1 aria-level="3">Nav</h1>
+		</nav>
+		<section>
+			<h1 aria-level="3">Section</h1>
+			<section>
+				<h1 aria-level="4">Subsection</h1>
+				<section>
+							<h1 aria-level="7">Deep subsection (level=7)</h1>
+				</section>
+				<section>
+					<h1 aria-level="5">Less deep subsection</h1>
+				</section>
+			</section>
+		</section>
+		<div>
+			<p>This is a level 3 div with a blank heading.</p>
+		</div>
+		<p>And here is a paragraph outside of the div.</p>
+	</section>
+	<section>
+		<h1 aria-level="2">Paragraphs</h1>
+		<p>This is a paragraph of content. Paragraph overflow. You can put the period at the beginning of any line and it will be ignored. And precede it by as many spaces as you want. Probably don't do this though.</p>
+		<p>This is a paragraph of content which omits its prefix. Even though the sigil in the first line is omitted, this one will still be ignored.</p>
+		<p>+ Paragraphs cannot contain other block types; this is a paragraph which begins with a plus.</p>
+		<ul>
+			<li>However this is clearly a list item, <br/> . and this is a line inside of a list item which begins with a dot.</li></ul>
+	</section>
+	<section>
+		<h1 aria-level="2">Lists and nesting</h1>
+		<ul>
+			<li>An unordered list item. Which continues with this line.</li>
+			<li>
+				<p>Another unordered list item, which contains a paragraph.</p>
+				<p>A second paragraph.</p></li>
+			<li>You need to explicitly mark paragraphs in list items. This is still the same paragraph as the previous sentence.</li></ul>
+		<ol>
+			<li>An ordered list item, starting a new list.</li></ol>
+		<!-- 
+; This comment closes the previous list.
+; Empty comments are not preserved in output but still work for this purpose.
+		 -->
+		<ol>
+			<li>A new ordered list, distinct from the previous.</li></ol>
+		<ol>
+			<li>A third list.</li></ol>
+		<dl>
+			<dt>Here is</dt>
+			<dd>A definition list</dd></dl>
+		<figure>
+			<div>A figure</div>
+			<figcaption>with a caption</figcaption></figure>
+		<p>= But figcaptions cannot be without figures.</p>
+		<ul>
+			<li>
+				<div>An interesting thought</div>isnʼt it? wow.</li></ul>
+	</section>
+	<section>
+		<h1 aria-level="2">Inline formatting</h1>
+		<p>Kinds of inline formatting: <a>anchor</a> <abbr>abbreviation</abbr> <b>attn</b> <code>code</code> <!-- comment --> <del>deletion</del> <em>emphasis</em> <mark>highlight</mark> <strong>important</strong> <kbd>input</kbd> <ins>insertion</ins> literal <i>offset</i> <samp>output</samp> <q>quote</q> <small>small</small> <span>span</span> <s>strikethrough</s> <sub>subscript</sub> <sup>superscript</sup> <cite>title</cite> <dfn>term</dfn> <u>underline</u> <var>variable</var></p>
+		<p>These <em>can <em>obviously</em> be <strong>nested</strong></em>.</p>
+		<p>Even this counts as a line break: *<br/>. But not this: <em></em>.</p>
+		<p><dfn>This</dfn> is an implicit paragraph, not a &lt;dt&gt; (inline syntax takes priority over block syntax).</p>
+		<dl>
+			<dt>What does this produce?? <ins>+</ins>|+</dt>
+			<dd>
+				<p>Answer: <code>&lt;ins&gt;+&lt;/ins&gt;|+</code>. After finding an open tag, the first possible close tag is selected.</p></dd>
+			<dt>And this?? *| <em></em></dt>
+			<dd>
+				<p>Answer: <code>*|&lt;em&gt;&lt;/em&gt;</code> Closing tags match with the nearest previous opening tag, except in the case of <code>|`</code>.</p></dd>
+			<dt>And this??  `|  |`</dt>
+			<dd>
+				<p>Answer: A literal consisting of <code>`|</code> followed by the string <code>|`</code>. Literal tags do not nest, and the first closing tag will close the earliest previous opening one.</p></dd>
+			<dt>Here is an interesting case: <em>Is the following `| a literal</em> ? |` |*</dt>
+			<dd>
+				<p>Answer: It is not! The closing  |*  takes precedence over the opening  `| . To get around this, you can escape the pipe in HTML. (Media elements have similar behaviour.)</p></dd></dl>
+	</section>
+	<section>
+		<h1 aria-level="2">Media</h1>
+		<p><picture><img alt="An image" src="./source.png"/></picture></p>
+		<p><picture><img alt="Another image" src="./thing"/></picture></p>
+		<p><picture><img alt="A third image" src="./thing"/></picture></p>
+		<p><video aria-label="Not an image"><source type="video/mp4" src="./source.png"/></video></p>
+		<p><video aria-label="Multiple sources"><source type="video/webm" src="./source1"/><source type="video/mp4" src="./source2"/></video></p>
+		<p><picture><source type="image/png" srcset="./source1"/><img alt="And with an image" src="./source2"/></picture></p>
+	</section>
+	<section>
+		<h1 aria-level="2">Attributes</h1>
+		<div class="div">
+			<h1 aria-level="3" class="heading">A section heading with attributes</h1>
+			<h1 aria-level="3">{But these braces} are part of the heading contents</h1>
+			<p class="p">A block with attributes.</p>
+			<p>Attributes can contain <b class="}">escapes and special characters</b>. You can include spaces by <b data-attr="like so">repeating the attribute</b>.</p>
+			<p>All the <b tabindex="tabindex" id="id" about="about" property="property" lang="lang" src="src" resource="resource" rev="rev" key="value" href="href" style="style" title="title" typeof="typeof" type="type" role="role" content="content" rel="rel" class="class" boolean="" datatype="datatype">types of attributes</b>.</p>
+		</div>
+	</section>
+	<section>
+		<h1 aria-level="2">Literals</h1>
+		<p>Literals insert their contents directly. None of it is checked.</p>
+		<p>Literals
+can take up
+as many lines
+as you want
+so long as
+none of the lines
+are blank.</p>
+		<p>Whitespace inside of literals should be        completely           preserved.         </p>
+		Block literals
+are       still        trimmed
+though.
+	</section>
+</article>
+</body>
+</html>

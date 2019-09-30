@@ -79,9 +79,15 @@ A blank heading will be generated with the following:
 
 Do not do this!
 
-Sections can contain other sections, or block/heading content, but not both.
-But you neednʼt worry about this!
-Any block/heading content which begins a section which contains other sections will be wrapped in an implicit div.
+Sections are closed when they are followed with another section of equal or lesser level.
+A line consisting only of slashes can be used to manually close all previous sections of equal or greater level, like so:
+
+	$$ A section
+	$$$ A subsection
+
+	//
+
+	This paragraph is not in either section.
 
 
 ## Block Elements

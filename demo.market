@@ -1,0 +1,226 @@
+	<title>Market Commons Demo</title>
+	<meta charset="utf-8"/>
+	<style>
+body { Max-Width: 31EM }
+h1 { Color: Red }
+p { Text-Align: Justify }
+	</style>
+
+; A demo page written in Market Commons markup.
+; This page is specifically written to test edge­‑cases; it is not a general introduction.
+
+@ Market Commons Demo
+
+$$ Basics
+
+A single character escape: \|\.
+Many: \\\\\\.
+Unicode: \u+0000000069\; \U+2764\.
+
+A line break: ||.
+This produces an empty span, not a line break: :||:.
+
+$$ Sectioning and Headings
+
+--- Headings can be used on their own without creating a new section.
+
+>>>
+A blockquote with no title.
+Sections can immediately begin on the line following their marks.
+
+<<< Aside <<<
+___Footer___
+^^^Header
+%%% Nav
+
+$$$ Section
+$$$$ Subsection
+$$$$$$$ Deep subsection (level=7)
+$$$$$ Less deep subsection
+
+::: :::
+
+This is a level 3 div with a blank heading.
+
+///
+
+And here is a paragraph outside of the div.
+
+$$ Paragraphs
+
+. This is a paragraph of content.
+Paragraph overflow.
+. You can put the period at the beginning of any line and it will be ignored.
+        . And precede it by as many spaces as you want. Probably don't do this though.
+
+This is a paragraph of content which omits its prefix.
+. Even though the sigil in the first line is omitted, this one will still be ignored.
+
+. + Paragraphs cannot contain other block types; this is a paragraph which begins with a plus.
+
++ However this is clearly a list item, ||
+. and this is a line inside of a list item which begins with a dot.
+
+$$ Lists and nesting
+
++ An unordered list item.
+Which continues with this line.
+
++ . Another unordered list item, which contains a paragraph.
++
++ . A second paragraph.
+
++ You need to explicitly mark paragraphs in list items.
++
++ This is still the same paragraph as the previous sentence.
+
+& An ordered list item, starting a new list.
+
+;; This comment closes the previous list.
+;; Empty comments are not preserved in output but still work for this purpose.
+
+& A new ordered list, distinct from the previous.
+
+;
+
+& A third list.
+
+? Here is
+
+, A definition list
+
+[ : A figure
+[
+[ = with a caption
+
+= But figcaptions cannot be without figures.
+
++ : An interesting thought
++
++ isnʼt it?
++
++ wow.
+
+$$ Inline formatting
+
+Kinds of inline formatting:
+. @|anchor|@
+. ]|abbreviation|]
+. #|attn|#
+. ~|code|~
+. ;|comment|;
+. -|deletion|-
+. *|emphasis|*
+. %|highlight|%
+. !|important|!
+. >|input|>
+. +|insertion|+
+. `|literal|`
+. /|offset|/
+. <|output|<
+. "|quote|"
+. [|small|[
+. :|span|:
+. =|strikethrough|=
+. ,|subscript|,
+. ^|superscript|^
+. '|title|'
+. ?|term|?
+. _|underline|_
+. $|variable|$
+
+These *|can *|obviously|* be !|nested|!|*.
+
+Even this counts as a line break: *||.
+But not this: *||*.
+
+?|This|? is an implicit paragraph, not a <dt> (inline syntax takes priority over block syntax).
+
+? What does this produce?? +|+|+|+
+
+,. Answer: ~|<ins>+</ins>|+|~.
+After finding an open tag, the first possible close tag is selected.
+
+? And this?? *| *| |*
+
+,. Answer: ~|*|<em></em>|~
+Closing tags match with the nearest previous opening tag, except in the case of ~| |` |~.
+
+? And this?? `| `| |` |`
+
+,. Answer: A literal consisting of ~| `\|\ |~ followed by the string ~| \|\` |~.
+Literal tags do not nest, and the first closing tag will close the earliest previous opening one.
+
+? Here is an interesting case:
+*| Is the following `| a literal |* ? |` |*
+
+,. Answer: It is not!
+The closing `| |* |` takes precedence over the opening `| `| |`.
+To get around this, you can escape the pipe in HTML.
+(Media elements have similar behaviour.)
+
+$$ Media
+
+&|An image|./source.png|&
+
+&| Another image |./thing|& { type=image/png }
+
+&|A third image| ./thing |& { type=image }
+
+&| Not an image | ./source.png |& { type=video/mp4 }
+
+&| Multiple sources | ./source1 | ./source2 |& { `video/webm `video/mp4 }
+
+&| And with an image | ./source1 | ./source2 |& { `image/png }
+
+$$ Attributes
+
+::: {.div} A section heading with attributes {.heading}
+--- {But these braces} are part of the heading contents
+
+. {.p} A block with attributes.
+
+Attributes can contain #|escapes and special characters|#{.\}\}.
+ You can include spaces by #|repeating the attribute|# { data-attr=like data-attr=so }.
+
+. All the #|types of attributes|# {
+.	.class
+.	?about
+.	~content
+.	^datatype
+.	!href
+.	#id
+.	@lang
+.	,property
+.	>rel
+.	%resource
+.	<rev
+.	&src
+.	$style
+.	*tabindex
+.	/title
+.	`type
+.	;typeof
+.	=role
+.	boolean
+.	key=value
+. }.
+
+$$ Literals
+
+Literals insert their contents directly.
+None of it is checked.
+
+`|Literals
+can take up
+as many lines
+as you want
+so long as
+none of the lines
+are blank.|`
+
+Whitespace inside of literals should be `|       completely           preserved.         |`
+
+`            Block literals
+`      are       still        trimmed
+` though.

@@ -104,10 +104,10 @@
 ;:: DATA STRUCTURES ::;
 
 ;; Heading is a list of Inline and string text contents which has been assigned a level and attributes.
-(	struct Heading [level attributes contents]
+(	struct Heading [level contents attributes]
 	#:transparent
 	#:guard
-	(	λ [level attributes contents structtype]
+	(	λ [level contents attributes structtype]
 		(	if [integer? level]
 			(	if [|Attributes valid?| attributes]
 				(	if
@@ -115,39 +115,63 @@
 						[list? contents]
 						[andmap [λ [i] [or [Inline? i] [string? i]]] contents]
 					)
-					[values level attributes contents]
+					[values level contents attributes]
 					[error structtype "Heading content must be a list of Inlines or strings."]
 				)	[error structtype "Heading attributes must be a hash mapping symbols to strings."]
 			)	[error structtype "Heading level must be an integer."]
 )	)	)
 
-;; Section is a list of Heading, Section, or Block contents which have been assigned a level, type, and attributes.
-(	struct Section [type level attributes contents]
+;; Divison is a parent class for sections and bodies.
+(	struct Division [level contents]
 	#:transparent
 	#:guard
-	(	λ [type level attributes contents structtype]
+	(	λ [level contents structtype]
 		(	if [integer? level]
-			(	if [|Attributes valid?| attributes]
+			[values level contents]
+			[error structtype "Division level must be an integer."]
+)	)	)
+
+;; Section is a list of Section or Body contents which has been assigned a level, type, and attributes.
+(	struct Section Division [type attributes]
+	#:transparent
+	#:guard
+	(	λ [level contents type attributes structtype]
+		(	if [|Attributes valid?| attributes]
+			(	if
+				(	and
+					[list? contents]
+					[andmap [λ [i] [or [Section? i] [Body? i]]] contents]
+				)
 				(	if
-					(	and
-						[list? contents]
-						[andmap [λ [i] [or [Heading? i] [Section? i] [Block? i]]] contents]
-					)
-					(	if
-						[symbol? type]
-						[values type level attributes contents]
-						[error structtype "Section type must be provided as a symbol."]
-					)	[error structtype "Section content must be a list of Headings, Sections, or Blocks."]
-				)	[error structtype "Section attributes must be a hash mapping symbols to strings."]
-			)	[error structtype "Section level must be an integer."]
+					[symbol? type]
+					[values level contents type attributes]
+					[error structtype "Section type must be provided as a symbol."]
+				)	[error structtype "Section content must be a list of Sections or Bodies."]
+			)	[error structtype "Section attributes must be a hash mapping symbols to strings."]
+)	)	)
+
+;; Body is a list of Heading or Block contents which has been assigned a level.
+(	struct Body Division []
+	#:transparent
+	#:guard
+	(	λ [level contents structtype]
+		(	if [integer? level]
+			(	if
+				(	and
+					[list? contents]
+					[andmap [λ [i] [or [Heading? i] [Block? i]]] contents]
+				)
+				[values level contents]
+				[error structtype "Body content must be a list of Headings or Blocks."]
+			)	[error structtype "Body level must be an integer."]
 )	)	)
 
 ;; Block is a list of Block, Inline, or string text contents which has been assigned a type and attributes.
 ;; If a Block has openness, the string text has not been parsed yet (there will not be any Inlines) and the Blockʼs contents are far from set in stone.
-(	struct Block [type attributes contents openness]
+(	struct Block [contents type attributes openness]
 	#:transparent
 	#:guard
-	(	λ [type attributes contents openness structtype]
+	(	λ [contents type attributes openness structtype]
 		(	if [boolean? openness]
 			(	if [|Attributes valid?| attributes]
 				(	if
@@ -156,7 +180,7 @@
 						[andmap [λ [i] [or [Block? i] [Inline? i] [string? i]]] contents]
 					)
 					(	if [symbol? type]
-						[values type attributes contents openness]
+						[values contents type attributes openness]
 						[error structtype "Block type must be provided as a symbol."]
 					)	[error structtype "Block content must be a list of Blocks, Inlines, or strings."]
 				)	[error structtype "Block attributes must be a hash mapping symbols to strings."]
@@ -164,10 +188,10 @@
 )	)	)
 
 ;; Inline is a list of Inline or string text contents which has been assigned a type and attributes.
-(	struct Inline [type attributes contents]
+(	struct Inline [contents type attributes]
 	#:transparent
 	#:guard
-	(	λ [type attributes contents structtype]
+	(	λ [contents type attributes structtype]
 		(	if [|Attributes valid?| attributes]
 			(	if
 				(	and
@@ -175,7 +199,7 @@
 					[andmap [λ [i] [or [Inline? i] [string? i]]] contents]
 				)
 				(	if [symbol? type]
-					[values type attributes contents]
+					[values contents type attributes]
 					[error structtype "Inline type must be provided as a symbol."]
 				)	[error structtype "Inline content must be a list of Inlines or strings."]
 			)	[error structtype "Inline attributes must be a hash mapping symbols to strings."]
@@ -185,13 +209,13 @@
 (	struct Multimedia Inline [sources]
 	#:transparent
 	#:guard
-	(	λ [type attributes contents sources structtype]
+	(	λ [contents type attributes sources structtype]
 		(	if
 			(	and
 				[list? sources]
 				[andmap [λ [i] [or [string? i] [and [pair? i] [string? [car i]] [symbol? [cdr i]]]]] sources]
 			)
-			[values type attributes contents sources]
+			[values contents type attributes sources]
 			[error structtype "Multimedia sources must be a list of strings or string-symbol pairs."]
 )	)	)
 
@@ -363,7 +387,7 @@
 ;; Break simply replaces all double­‑pipes with inline breaks, taking a string and returning a list.
 (	define [Break text]
 	(	filter [λ [i] [or [Inline? i] [non-empty-string? i]]]
-		[add-between [string-split text "||" #:trim? #f] [Inline 'Break #hash() empty]]
+		[add-between [string-split text "||" #:trim? #f] [Inline empty 'Break #hash()]]
 )	)
 
 ;; Inlinify parses a string into a list of Inlines and strings.
@@ -410,9 +434,9 @@
 							)
 							(	list
 								(	Multimedia
+									[list contents]
 									type
 									attributes
-									[list contents]
 									(	apply map
 										(	cons [λ [s t] [if t [cons s [string->symbol t]] s]]
 											(	cond
@@ -427,17 +451,16 @@
 					(	[or [equal? type 'Comment] [equal? type 'Literal]] ; the element has plaintext contents
 						(	list
 							(	Inline
-								type
-								#hash() ; attributes are ignored
 								(	list
 									(	[if [equal? type 'Literal] identity string-trim]
 										[substring text [+ element-start 2] [- element-end 2]]
-					)	)	)	)	)
+								)	)
+								type
+								#hash() ; attributes are ignored
+					)	)	)
 					(	else ; the element is ordinary
 						(	list
 							(	Inline
-								type
-								attributes
 								(	if
 									(	and
 										[equal? type 'Anchor]
@@ -447,7 +470,10 @@
 										[if [non-empty-string? content] [list content] '()]
 									)
 									[Inlinify text [+ element-start 2] [- element-end 2] inner]
-				)	)	)	)	)
+								)
+								type
+								attributes
+				)	)	)	)
 				(	if [non-empty-string? after]
 					[map [λ [i] [if [string? i] [text->plain i] i]] [Break after]]
 					'()
@@ -464,6 +490,7 @@
 	[define attr [string-trim [ParseHeading-attr heading]]]
 	(	Heading
 		level
+		[Inlinify [ParseHeading-text heading]]
 		(	(	λ [h]
 				(	hash-set h 'aria-level
 					(	or
@@ -474,21 +501,22 @@
 				[string->attributes [substring attr 1 [sub1 [string-length attr]]]]
 				#hash()
 		)	)
-		[Inlinify [ParseHeading-text heading]]
 )	)
 
-;; ParseSection->Section parses a ParseSection into an empty Section.
-(	define [ParseSection->Section section]
+;; ParseSection->Division parses a ParseSection into a Section or a Body.
+(	define [ParseSection->Division section]
 	[define attr [string-trim [ParseSection-attr section]]]
-	(	Section
-		[hash-ref char=Section-type [ParseSection-sigil section]]
-		[ParseSection-level section]
-		(	if [non-empty-string? attr]
-			[string->attributes [substring attr 1 [sub1 [string-length attr]]]]
-			#hash()
-		)
-		empty
-)	)
+	(	if [equal? [ParseSection-sigil section] #\/] ; this is a section end
+		[Body [ParseSection-level section] empty]
+		(	Section
+			[ParseSection-level section]
+			[list [Body [add1 [ParseSection-level section]] empty]]
+			[hash-ref char=Section-type [ParseSection-sigil section]]
+			(	if [non-empty-string? attr]
+				[string->attributes [substring attr 1 [sub1 [string-length attr]]]]
+				#hash()
+			)
+)	)	)
 
 ;; |Close block| parses the string contents of a block and then sets its openness to #f.
 (	define [|Close block| block]
@@ -574,12 +602,12 @@
 					)
 					(	list
 						(	Block
+							[|Add line to contents| text #:parent type]
 							type
 							(	if [non-empty-string? attr]
 								[string->attributes [substring attr 1 [sub1 [string-length attr]]]]
 								#hash()
 							)
-							[|Add line to contents| text #:parent type]
 							#t
 			)	)	)	)
 			(	let
@@ -627,30 +655,33 @@
 ;; |Make chunks from line| creates a new list of (usually but not always one) chunks from the given trimmed (initial) line.
 (	define [|Make chunks from line| trimmed]
 	[define sigil [string-ref trimmed 0]]
-	(	if
-		(	and
-			[or [equal? sigil #\-] [hash-ref char=Section-type sigil #f]]
-			(	not
-				(	and
-					[> [string-length trimmed] 1]
-					[hash-ref char=Inline-type sigil #f]
-					[equal? [string-ref trimmed 1] #\|]
-				) ; sigil is an inline sigil followed by a pipe
-		)	) ; this is a heading or section
-		(	let*
-			(	[matches [regexp-match #px"^((.)\\2*)(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\}\\s*)?(.*?)\\2*(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\})?\\s*$" trimmed]]
-				[level [string-length [second matches]]]
-				[section-attr [or [fourth matches] ""]]
-				[text [string-trim [fifth matches]]]
-				[heading-attr [or [sixth matches] ""]]
-			)
-			(	if [equal? sigil #\-] ; this is a heading / this is a section
-				[list [ParseHeading level heading-attr [string-append section-attr text]]]
-				(	if [or [non-empty-string? heading-attr] [non-empty-string? text]] ; this section has a heading / no heading
-					[list [ParseSection sigil level section-attr] [ParseHeading level heading-attr text]]
-					[list [ParseSection sigil level section-attr]]
-		)	)	)
-		[list [ParseBlock [list trimmed] #t]] ; this is a block
+	(	cond
+		(	[regexp-match #rx"^/+$" trimmed] ; this is a section end
+			[list [ParseSection #\/ [string-length trimmed] ""]]
+		)
+		(	(	and
+				[or [equal? sigil #\-] [hash-ref char=Section-type sigil #f]]
+				(	not
+					(	and
+						[> [string-length trimmed] 1]
+						[hash-ref char=Inline-type sigil #f]
+						[equal? [string-ref trimmed 1] #\|]
+					) ; sigil is an inline sigil followed by a pipe
+			)	) ; this is a heading or section
+			(	let*
+				(	[matches [regexp-match #px"^((.)\\2*)(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\}\\s*)?(.*?)\\2*(\\s*\\{(?:\\\\\\}\\\\|[^}])*(?:\\\\\\}\\\\|[^\\\\}]|\\\\(?!\\}\\\\))\\})?\\s*$" trimmed]]
+					[level [string-length [second matches]]]
+					[section-attr [or [fourth matches] ""]]
+					[text [string-trim [fifth matches]]]
+					[heading-attr [or [sixth matches] ""]]
+				)
+				(	if [equal? sigil #\-] ; this is a heading / this is a section
+					[list [ParseHeading level heading-attr [string-append section-attr text]]]
+					(	if [or [non-empty-string? heading-attr] [non-empty-string? text]] ; this section has a heading / no heading
+						[list [ParseSection sigil level section-attr] [ParseHeading level heading-attr text]]
+						[list [ParseSection sigil level section-attr]]
+		)	)	)	)
+		[else [list [ParseBlock [list trimmed] #t]]] ; this is a block
 )	)
 
 ;; Chunkify adds a line to a provided list of chunks.
@@ -682,7 +713,7 @@
 	(	define parsed
 		(	cond
 			[[ParseHeading? chunk] [ParseHeading->Heading chunk]]
-			[[ParseSection? chunk] [ParseSection->Section chunk]]
+			[[ParseSection? chunk] [ParseSection->Division chunk]]
 			[[ParseBlock? chunk] [ParseBlock->Block chunk]]
 			[else chunk]
 	)	)
@@ -693,33 +724,44 @@
 			[[latest [last contents]]]
 			(	if
 				(	and
-					[Section? latest]
+					[Division? latest]
+					[not [and [Body? latest] [Division? parsed]]]
 					(	or
-						[not [Section? parsed]]
+						[not [Division? parsed]]
 						(	<
-							[Section-level latest]
-							[Section-level parsed]
+							[Division-level latest]
+							[Division-level parsed]
 				)	)	) ; parsed should be nested inside the latest section / parsed belongs at the top level
 				(	append
 					[drop-right contents 1]
 					(	list
-						(	struct-copy
-							Section latest
-							(	contents
-								(	|Add chunk to contents|
-									parsed
-									[Section-contents latest]
-					)	)	)	)
-				)
+						(	if [Body? latest]
+							(	struct-copy
+								Body latest
+								(	contents #:parent Division
+									(	|Add chunk to contents|
+										parsed
+										[Division-contents latest]
+							)	)	)
+							(	struct-copy
+								Section latest
+								(	contents #:parent Division
+									(	|Add chunk to contents|
+										parsed
+										[Division-contents latest]
+				)	)	)	)	)	)
 				[append contents [list parsed]]
 )	)	)	)
 
 ;; market takes a string source and returns a 'Body Section.
 (	define [market source]
-	(	Section 'Body 0 #hash()
-		(	foldl |Add chunk to contents| empty
+	(	Section 0
+		(	foldl |Add chunk to contents|
+			[list [Body 1 empty]]
 			[foldl Chunkify empty [regexp-split #rx"\r\n|\r\x85|\x85|\u2028|\r|\n" source]]
-)	)	)
+		)
+		'Body #hash()
+)	)
 
 ;:: XML CONVERSION TABLES ::;
 
@@ -794,25 +836,30 @@
 						)	[Heading-contents element]
 		)	)	)	)
 		(	[Section? element]
-			(	let
-				(	(	secx
-						(	append
-							(	foldl
-								[curry |Add element to xexpr| #:level [Section-level element]]
-								(	list
-									[hash-ref Section-type=xml-symbol [Section-type element]]
-									[hash-map [Section-attributes element] list]
-								)	[Section-contents element]
-							)
-							[list [string-append "\n" [make-string level #\tab]]]
-				)	)	)
-				(	if [empty? xexpr]
-					secx
-					(	append xexpr
+			(	define secx
+				(	append
+					(	foldl
+						[curry |Add element to xexpr| #:level [Division-level element]]
 						(	list
-							[string-append "\n" [make-string level #\tab]]
-							secx
-		)	)	)	)	)
+							[hash-ref Section-type=xml-symbol [Section-type element]]
+							[hash-map [Section-attributes element] list]
+						)	[Division-contents element]
+					)
+					[list [string-append "\n" [make-string level #\tab]]]
+			)	)
+			(	if [empty? xexpr]
+				secx
+				(	append xexpr
+					(	list
+						[string-append "\n" [make-string level #\tab]]
+						secx
+		)	)	)	)
+		(	[Body? element]
+			(	foldl
+				[curry |Add element to xexpr| #:level [sub1 [Division-level element]]]
+				xexpr
+				[Division-contents element]
+		)	)
 		(	[and [Block? element] [equal? [Block-type element] 'Comment]]
 			(	let [[contents [apply string-append [Block-contents element]]]]
 				(	append xexpr
