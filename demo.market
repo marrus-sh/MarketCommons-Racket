@@ -89,11 +89,11 @@ Which continues with this line.
 
 , A definition list
 
-[ : A figure
+[ > A blockquote in a figure
 [
-[ = with a caption
+[ _ with a caption
 
-= But figcaptions cannot be without figures.
+. _ But figcaptions cannot be without figures.
 
 + : An interesting thought
 +

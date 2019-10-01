@@ -27,11 +27,12 @@
 (	define char=Block-type
 	#hash(
 		[#\] . Address]
+		[#\> . Blockquote] ; Section sigils take precedence
 		[#\; . Comment]
-		[#\: . Div] ; Section sigils take precedence
 		[#\, . Definition] ; <dd>
+		[#\: . Div] ; Section sigils take precedence
 		[#\[ . Figure]
-		[#\= . FigureCaption]
+		[#\_ . FigureCaption] ; Only directly inside of Figure
 		[#\+ . Item]
 		[#\` . Literal] ; Directly output contents
 		[#\& . OrderedItem]
@@ -781,6 +782,7 @@
 (	define Block-type=xml-symbol
 	#hash(
 		[Address . address]
+		[Blockquote . blockquote]
 		[Definition . dd]
 		[Div . div]
 		[Figure . figure]

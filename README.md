@@ -157,10 +157,11 @@ You can use a `:` inside of a block if you want to break up its contents without
 The following blocks are available:
 
 + `]`: `<address>`
++ `>` : `<blockquote>` (only inside of other blocks)
 + `,`: `<dd>`
 + `:` : `<div>` (only inside of other blocks)
 + `?`: `<dt>`
-+ `=`: `<figcaption>` (as a child of `<figure>` only)
++ `_`: `<figcaption>` (as a child of `<figure>` only)
 + `[`: `<figure>`
 + `&`: `<li>` (ordered)
 + `+`: `<li>` (unordered)
@@ -179,6 +180,7 @@ For example:
 	;
 
 	+ A new list
+	+
 	+ ; with a comment inside
 
 
