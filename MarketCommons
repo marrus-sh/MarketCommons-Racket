@@ -173,7 +173,7 @@
 	#:transparent
 	#:guard
 	(	λ [contents type attributes openness structtype]
-		(	if [boolean? openness]
+	(	if [boolean? openness]
 			(	if [|Attributes valid?| attributes]
 				(	if
 					(	and
@@ -530,13 +530,22 @@
 						(	λ [i]
 							(	if [string? i]
 								(	if [not [member [Block-type block] '(Comment Literal)]]
-									[Inlinify i]
+									[Inlinify i #:trim-right? #f]
 									[list i]
 								)
 								[list [|Close block| i]]
 						)	)
-						contents
-			)	)	)
+						(	if
+							(	and
+								[not [empty? contents]]
+								[string? [last contents]]
+							) ; last item is / not a string (potentially ending in a newline)
+							(	append
+								[drop-right contents 1]
+								[list [string-trim [last contents]]]
+							)
+							contents
+			)	)	)	)
 			[openness #f]
 		)
 		block
@@ -544,7 +553,10 @@
 
 ;; |Add line to contents| is a somewhat complicated accumulator function for adding a line of text into the proper place in a list of Block contents.
 ;; This behaviour can be affected by the provided parent context—for example, a 'Paragraph parent will always return a string.
-(	define [|Add line to contents| line [contents '()] #:parent [parent 'Body]]
+(	define
+	(	|Add line to contents| line [contents '()]
+		#:parent [parent 'Body]
+	)
 	(	let*
 		(	[trimmed [string-trim line]]
 			(	type
@@ -620,22 +632,25 @@
 				)	)	)
 				(	cond
 					(	[and [Block? latest] [Block-openness latest]] ; latest is an open Block
-						(	let [[parent [Block-type latest]]]
-							(	append
-								[drop-right contents 1]
-								(	list
-									(	if [non-empty-string? text] ; text is more content / text is a blank line
-										(	struct-copy Block latest
-											[contents [|Add line to contents| text [Block-contents latest] #:parent parent]]
-										)
-										[|Close block| latest]
-					)	)	)	)	)
-					(	[string? latest] ; latest is a string
-						(	if  [non-empty-string? text] ; text has contents / text is a blank line
-							[append [drop-right contents 1] [list [string-append latest "\n" text]]]
-							contents
+						[define parent [Block-type latest]]
+						(	append
+							[drop-right contents 1]
+							(	list
+								(	if [non-empty-string? text] ; text is more content / text is a blank line
+									(	struct-copy Block latest
+										[contents [|Add line to contents| text [Block-contents latest] #:parent parent]]
+									)
+									[|Close block| latest]
+					)	)	)	)
+					(	(	and
+							[string? latest] ; latest is a string
+							[regexp-match #rx"[^\n]$" latest]
+						) ; latest is a string which does not end in a blank line
+						(	append
+							[drop-right contents 1]
+							[list [string-append [string-trim latest] "\n" text]]
 					)	)
-					(	else ; latest is a closed Block
+					(	else ; latest is a string ending in a blank line or a closed Block
 						[append contents [|Add line to contents| text #:parent parent]]
 )	)	)	)	)	)
 

@@ -142,17 +142,10 @@ However, this is not true inside of other blocks:
 
 	+ however, this is not
 	+
-	+ . and this is also not (because it continues the previous lines)
-
-You can use a `:` inside of a block if you want to break up its contents without using paragraphs:
-
-	[ &| Cool image | image.png |&
-	[
-	[ = This will not work, since this block has inline contents.
-
-	[ : &| Cool image | image.png |&
-	[
-	[ = But this will.
+	+ . but this is
+	+
+	+ and this is not again
+	+
 
 The following blocks are available:
 

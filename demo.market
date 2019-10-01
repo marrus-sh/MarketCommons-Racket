@@ -72,7 +72,11 @@ Which continues with this line.
 
 + You need to explicitly mark paragraphs in list items.
 +
-+ This is still the same paragraph as the previous sentence.
++ This is a separate inline from the previous sentence.
+
++ Note this *|will
++
++ not|* work (these are two separate inlines).
 
 & An ordered list item, starting a new list.
 
@@ -94,12 +98,6 @@ Which continues with this line.
 [ _ with a caption
 
 . _ But figcaptions cannot be without figures.
-
-+ : An interesting thought
-+
-+ isnʼt it?
-+
-+ wow.
 
 $$ Inline formatting
 
