@@ -77,7 +77,7 @@
 		[#\^ . datatype]
 		[#\! . href]
 		[#\# . id]
-		[#\@ . lang]
+		[#\@ . lang] ; also sets xml:lang
 		[#\, . property]
 		[#\> . rel]
 		[#\% . resource]
@@ -372,6 +372,15 @@
 						[value [string-join [rest split] "="]]
 					)
 					[hash-update hash attname [λ [i] [|Join attributes| i value]] ""]
+			)	)
+			(
+				[equal? [string-ref item 0] #\@] ; this is a language sigil
+				[define value [substring item 1]]
+				(	hash-update
+					[hash-update hash 'lang [λ [i] [|Join attributes| i value]] ""]
+					'xml:lang
+					[λ [i] [|Join attributes| i value]]
+					""
 			)	)
 			(	else ; item is a shorthand
 				(	let*

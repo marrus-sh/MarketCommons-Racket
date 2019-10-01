@@ -241,7 +241,7 @@ Attributes must be separated by space characters and can take a variety of synta
 + `^value`: specifies the `datatype` attribute
 + `!value`: specifies the `href` attribute
 + `#value`: specifies the `id` attribute
-+ `@value`: specifies the `lang` attribute
++ `@value`: specifies the `lang` *and* `xml:lang` attributes
 + `,value`: specifies the `property` attribute
 + `>value`: specifies the `rel` attribute
 + `%value`: specifies the `resource` attribute
