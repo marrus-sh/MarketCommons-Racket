@@ -72,7 +72,7 @@ Which continues with this line.
 
 + You need to explicitly mark paragraphs in list items.
 +
-+ This is a separate inline from the previous sentence.
++ This is a separate inline from the previous sentence (but they will run together).
 
 + Note this *|will
 +
@@ -84,6 +84,12 @@ Which continues with this line.
 ;; Empty comments are not preserved in output but still work for this purpose.
 
 & A new ordered list, distinct from the previous.
+
+& A sublist,
+&
+& & Here,
+&
+& But not here.
 
 ;
 

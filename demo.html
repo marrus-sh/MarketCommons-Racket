@@ -71,7 +71,7 @@ This page is specifically written to test edge­‑cases; it is not a general in
 			<li>
 				<p>Another unordered list item, which contains a paragraph.</p>
 				<p>A second paragraph.</p></li>
-			<li>You need to explicitly mark paragraphs in list items. This is a separate inline from the previous sentence.</li>
+			<li>You need to explicitly mark paragraphs in list items. This is a separate inline from the previous sentence (but they will run together).</li>
 			<li>Note this *|will not|* work (these are two separate inlines).</li></ul>
 		<ol>
 			<li>An ordered list item, starting a new list.</li></ol>
@@ -80,7 +80,10 @@ This page is specifically written to test edge­‑cases; it is not a general in
 ; Empty comments are not preserved in output but still work for this purpose.
 		 -->
 		<ol>
-			<li>A new ordered list, distinct from the previous.</li></ol>
+			<li>A new ordered list, distinct from the previous.</li>
+			<li>A sublist, 
+				<ol>
+					<li>Here,</li></ol>But not here.</li></ol>
 		<ol>
 			<li>A third list.</li></ol>
 		<dl>
