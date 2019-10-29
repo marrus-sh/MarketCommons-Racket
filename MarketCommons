@@ -1086,7 +1086,7 @@
 					[call-with-input-file [first args] port->string]
 					[port->string]
 			)	)
-			[headed? [regexp-match? #px"(?:\r\n|\r\x85|\x85|\u2028|[\r\n \t])*<" source]]
+			[headed? [regexp-match? #px"^(?:\r\n|\r\x85|\x85|\u2028|[\r\n \t])*<" source]]
 			(	head-break-position
 				(	or
 					(	and
