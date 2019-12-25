@@ -1102,9 +1102,8 @@
 		(	(	λ [o]
 				(	if [not [equal? output "-"]]
 					[with-output-to-file output o #:exists 'replace]
-					[o]
-				)
-			)
+					[begin [o] [void]] ; discard result
+			)	)
 			(	λ []
 				(	write-string
 					(	string-append
