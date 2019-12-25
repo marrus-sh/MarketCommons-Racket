@@ -365,7 +365,7 @@
 	(	define [|Add attribute to hash| item hash]
 		(	cond
 			[[not [non-empty-string? item]] hash] ; item is empty
-			(	[regexp-match? #rx"[^\\\\]=|.=(?!\\\\)" item] ; item contains a name followed by an equals sign
+			(	[regexp-match? #px"^[:A-Z_a-zÀ-ÖØ-öø-˿Ͱ-ͽͿ-\u1FFF\u200C\u200D⁰-\u218FⰀ-\u2FEF、-\uD7FF豈-\uFDCFﷰ-�𐀀-\UEFFFF][:A-Z_a-zÀ-ÖØ-öø-˿Ͱ-ͽͿ-\u1FFF\u200C\u200D⁰-\u218FⰀ-\u2FEF、-\uD7FF豈-\uFDCFﷰ-�𐀀-\UEFFFF.0-9·̀-ͧ‿⁀-]*=" item] ; item contains a Name followed by an equals sign
 				(	let*
 					(	[split [string-split item "="]]
 						[attname [string->symbol [first split]]]
@@ -388,8 +388,10 @@
 						[value [if [equal? attname '||] "" [substring item 1]]]
 						[attname [if [equal? attname '||] [string->symbol item] attname]]
 					)
-					[hash-update hash attname [λ [i] [|Join attributes| i value]] ""]
-	)	)	)	)
+					(	if [regexp-match? #px"^[:A-Z_a-zÀ-ÖØ-öø-˿Ͱ-ͽͿ-\u1FFF\u200C\u200D⁰-\u218FⰀ-\u2FEF、-\uD7FF豈-\uFDCFﷰ-�𐀀-\UEFFFF][:A-Z_a-zÀ-ÖØ-öø-˿Ͱ-ͽͿ-\u1FFF\u200C\u200D⁰-\u218FⰀ-\u2FEF、-\uD7FF豈-\uFDCFﷰ-�𐀀-\UEFFFF.0-9·̀-ͧ‿⁀-]*" [symbol->string attname]] ; attribute is valid / attribute is invalid
+						[hash-update hash attname [λ [i] [|Join attributes| i value]] ""]
+						hash
+	)	)	)	)	)
 
 	[foldl |Add attribute to hash| #hash() [string-split [text->plain text]]]
 )
