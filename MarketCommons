@@ -1,6 +1,14 @@
 #! /usr/bin/env racket
-#lang racket
-[require xml]
+#lang racket/base
+(	require
+	racket/cmdline
+	racket/function
+	racket/list
+	racket/match
+	racket/port
+	racket/string
+	xml
+)
 
 ;; This script provides conversion from Market Commons markup into XML.
 ;; It is written for clarity and simplicity, not efficiency, and may not be particularly fast.
