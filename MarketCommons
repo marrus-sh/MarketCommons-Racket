@@ -1086,40 +1086,63 @@
 ;; market-string->xml converts a Market Commons string to an XML one.
 [define market-string->xml [compose1 market-xexpr->xml market-string->xexpr]]
 
+;; |Add header to xml| prepends a header XML string to further XML.
+(	define [|Add header to xml| head contents]
+	[string-append "<head>\n" head "\n</head>\n" contents]
+)
+
+;; |Wrap xhtml contents| provides an XHTML document header and <html> wrapper to an XML contents string.
+(	define [|Wrap xhtml contents| contents]
+	[string-append "<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\n" contents "\n</html>\n"]
+)
+
+;; |Parse market header| parses a Market Commons string into separate header and rest strings.
+(	define/match [|Parse market header| source]
+	(	(	(	? [λ [s] [regexp-match? #px"^(?:\r\n|\r\x85|\x85|\u2028|[\r\n \t])*<" s]] ; headed?
+				(	app
+					[λ [s] [regexp-match-positions #px"(?:\r\n|\r\x85|\x85|\u2028|\r|\n){2}" s]]
+					[cons [cons head-end-position body-start-position] _]
+		)	)	)
+		(	values
+			[substring source 0 head-end-position] ; head
+			[substring source body-start-position] ; body
+	)	)
+	[[_] [values "" source]] ; [values head body]
+)
+
+;; headed-market->xml converts a Market Commons string with a header into an XML one.
+(	define headed-market->xml
+	(	compose
+		|Add header to xml|
+		[λ [head body] [values head [|market-string->xml| body]]]
+		|Parse market header|
+)	)
+
+;; market-document->xhtml-document converts a Market Commons document into an XHTML one.
+[define market-document->xhtml [compose |Wrap xhtml contents| headed-market->xml]]
+
 ;:: COMMAND LINE ::;
+
+;; filename->string reads a filename's respective file into a string.
+(	define/match [filename->string filename]
+	[["-"] [port->string]]
+	[[_] [call-with-input-file filename port->string]]
+)
+
+;; with-output-to-filename takes a filename and returns a with-output-to-file–style procedure already provided the appropriate path.
+(	define/match [with-output-to-filename filename]
+	[["-"] [make-keyword-procedure [λ [kws kw-args proc . rst] [void [proc]]]]] ; discard result
+	[[_] [curry with-output-to-file filename]]
+)
 
 (	command-line
 	#:args args
 	(	let*
-		(	(	source
-				(	if [and [positive? [length args]] [not [equal? [first args] "-"]]]
-					[call-with-input-file [first args] port->string]
-					[port->string]
-			)	)
-			[headed? [regexp-match? #px"^(?:\r\n|\r\x85|\x85|\u2028|[\r\n \t])*<" source]]
-			(	head-break-position
-				(	or
-					(	and
-						headed?
-						[regexp-match-positions #px"(?:\r\n|\r\x85|\x85|\u2028|\r|\n){2}" source]
-					)
-					'((0 . 0))
-			)	)
-			[head [substring source 0 [caar head-break-position]]]
-			[body [substring source [cdar head-break-position]]]
+		(	[source [filename->string [if [positive? [length args]] [first args] "-"]]]
+			[xhtml-source [market-document->xhtml source]]
 			[output [if [> [length args] 1] [second args] "-"]]
 		)
-		(	(	λ [o]
-				(	if [not [equal? output "-"]]
-					[with-output-to-file output o #:exists 'replace]
-					[begin [o] [void]] ; discard result
-			)	)
-			(	λ []
-				(	write-string
-					(	string-append
-						"<!DOCTYPE html>\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\n<head>\n"
-						head
-						"\n</head>\n"
-						[market-string->xml body]
-						"\n</html>\n"
-)	)	)	)	)	)
+		(	[with-output-to-filename output]
+			[λ [] [write-string xhtml-source]]
+			#:exists 'replace
+)	)	)
