@@ -1135,14 +1135,12 @@
 	[[_] [curry with-output-to-file filename]]
 )
 
-(	command-line
-	#:args args
-	(	let*
-		(	[source [filename->string [if [positive? [length args]] [first args] "-"]]]
-			[xhtml-source [market-document->xhtml source]]
-			[output [if [> [length args] 1] [second args] "-"]]
-		)
-		(	[with-output-to-filename output]
+(	module* main #f
+	(	command-line
+		#:args [[source-filename "-"] [output-filename "-"] . args]
+		[define source [filename->string source-filename]]
+		[define xhtml-source [market-document->xhtml source]]
+		(	[with-output-to-filename output-filename]
 			[λ [] [write-string xhtml-source]]
 			#:exists 'replace
 )	)	)
