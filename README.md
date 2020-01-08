@@ -291,4 +291,8 @@ Characters may also be escaped by codepoint using the form `\U+XXXX\`, where XXX
 Two plain adjacent pipe characters represent a line break (`<br>`): `||`.
 
 All whitespace will be trimmed and collapsed, except inside of inline literals (where it will be preserved).
-This takes place *after* substituting character escapes, so `\U+20\` will be treated as though it were a space in the source.
+Collapsing takes place *after* substituting character escapes, so (for example) `\U+20\` will be collapsed with other spaces in the source.
+However, a sequence of spaces will not be trimmed (only collapsed) if at least one of its spaces is escaped.
+
+	:| This span will end in a full stop. |:
+	:| This span will end in a single space: \ \\ \ |:
