@@ -1,3 +1,144 @@
+attributes:
+- beginString: "(?<=[^\\\\])\\{|\\{(?=[^\\\\])"
+  regularExpression: true
+  description: "Attribute block"
+  endString: "(?<=[^\\\\])\\}|\\}(?=[^\\\\])"
+values:
+- regularExpression: true
+  beginString: "&\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|&)[^|]*\\|"
+  endString: "[^ \\t|][ \\t]*\\|&"
+  description: "media"
+completions: []
+commands:
+- beginString: "#\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|#)"
+  regularExpression: true
+  endString: "\\|#"
+  description: "b"
+- beginString: "%\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|%)"
+  regularExpression: true
+  endString: "\\|%"
+  description: "mark"
+- beginString: ",\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|,)"
+  regularExpression: true
+  description: "sub"
+  endString: "\\|,"
+- beginString: "/\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|/)"
+  regularExpression: true
+  endString: "\\|/"
+  description: "i"
+- beginString: ":\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|:)"
+  regularExpression: true
+  description: "span"
+  endString: "\\|:"
+- beginString: "=\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|=)"
+  regularExpression: true
+  endString: "\\|="
+  description: "s"
+- beginString: "\\[\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\[)"
+  regularExpression: true
+  description: "small"
+  endString: "\\|\\["
+- beginString: "\\]\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\])"
+  regularExpression: true
+  description: "abbr"
+  endString: "\\|\\]"
+- beginString: "\\^\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\^)"
+  regularExpression: true
+  description: "sup"
+  endString: "\\|\\^"
+- beginString: "_\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|_)"
+  regularExpression: true
+  description: "u"
+  endString: "\\|_"
+comments:
+- beginString: ";\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|;)"
+  regularExpression: true
+  endString: "\\|;"
+types:
+- beginString: "^[ \\t]*/+[ \\t]*$"
+  description: "end section"
+  regularExpression: true
+- beginString: "^[ \\t]*[-@<>:_^%$]+"
+  regularExpression: true
+  endString: "$"
+  description: "section/heading"
+keywords:
+- beginString: "!\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|!)"
+  regularExpression: true
+  description: "strong"
+  endString: "\\|!"
+- beginString: "\"\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\")"
+  regularExpression: true
+  description: "q"
+  endString: "\\|\""
+- beginString: "'\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|')"
+  regularExpression: true
+  description: "cite"
+  endString: "\\|'"
+- beginString: "-\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|-)"
+  regularExpression: true
+  description: "del"
+  endString: "\\|-"
+- beginString: "@\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|@)"
+  regularExpression: true
+  description: "a"
+  endString: "\\|@"
+- beginString: "\\*\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\*)"
+  regularExpression: true
+  description: "em"
+  endString: "\\|\\*"
+- beginString: "\\+\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\+)"
+  regularExpression: true
+  description: "ins"
+  endString: "\\|\\+"
+- beginString: "^[ \\t]*[\\],?=\\[&+\\.;`](?:[ \\t]*[\\],?=\\[&+\\.;`:])*"
+  description: "block"
+  regularExpression: true
+extensions:
+- keyString: "market"
+metadata:
+  distributionURL: "https://monsterware.dev/kibimon/MarketCommons-Racket"
+  author: "kibigo!"
+  lastModified: "2020-01-07"
+  version: "0.1.1"
+characters:
+- beginString: "<\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|<)"
+  regularExpression: true
+  description: "samp"
+  endString: "\\|<"
+- beginString: ">\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|>)"
+  regularExpression: true
+  description: "kbd"
+  endString: "\\|>"
+- beginString: "~\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|~)"
+  regularExpression: true
+  description: "code"
+  endString: "\\|~"
+variables:
+- beginString: "\\$\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\$)"
+  regularExpression: true
+  description: "var"
+  endString: "\\|\\$"
+- beginString: "\\?\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\?)"
+  regularExpression: true
+  endString: "\\|\\?"
+  description: "dfn"
+strings:
+- beginString: "`\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|`)"
+  regularExpression: true
+  description: "Literal"
+  endString: "\\|`"
+numbers:
+- beginString: "\\\\(?=(?:.|U\\+[0-9A-F]+)\\\\)"
+  regularExpression: true
+  ignoreCase: true
+  endString: "\\\\"
+  description: "escape"
+- beginString: "\\|(?=\\|)"
+  regularExpression: true
+  endString: "(?<=\\|)\\|"
+  description: "br"
+commentDelimiters: {}
 outlineMenu:
 - beginString: "^([-@<>:_^%$])[ \\t]*(?:\\{.*?\\}[ \\t])?((?:(?!\\1).)+?)[ \\t]*\\1*[
     \\t]*(?:\\{.*?\\}[ \\t]*)?$"
@@ -25,123 +166,3 @@ outlineMenu:
     \\t]*(?:\\{.*?\\}[ \\t]*)?$"
   keyString: "                    $2"
   description: "h6"
-keywords:
-- beginString: "!|"
-  description: "strong"
-  endString: "|!"
-- beginString: "\"|"
-  description: "q"
-  endString: "|\""
-- beginString: "'|"
-  description: "cite"
-  endString: "|'"
-- beginString: "*|"
-  description: "em"
-  endString: "|*"
-- beginString: "+|"
-  description: "ins"
-  endString: "|+"
-- beginString: "-|"
-  description: "del"
-  endString: "|-"
-- beginString: "@|"
-  description: "a"
-  endString: "|@"
-- beginString: "^[ \\t]*[\\],?=\\[&+\\.;`](?:[ \\t]*[\\],?=\\[&+\\.;`:])*"
-  regularExpression: true
-  description: "block"
-comments: []
-metadata:
-  version: "0.1.0"
-  author: "kibigo!"
-  lastModified: "2019-08-23"
-values:
-- regularExpression: true
-  beginString: "&\\|[^|]*\\|"
-  endString: "[^ \\t|][ \\t]*\\|&"
-  description: "media"
-extensions:
-- keyString: "market"
-completions: []
-variables:
-- beginString: "$|"
-  endString: "|$"
-  description: "var"
-- beginString: "?|"
-  description: "dfn"
-  endString: "|?"
-commentDelimiters:
-  endDelimiter: "|;"
-  beginDelimiter: ";|"
-strings:
-- beginString: "`|"
-  regularExpression: false
-  description: "Literal"
-  endString: "|`"
-attributes:
-- beginString: "(?<=[^\\\\])\\{|\\{(?=[^\\\\])"
-  regularExpression: true
-  description: "Attribute block"
-  endString: "(?<=[^\\\\])\\}|\\}(?=[^\\\\])"
-types:
-- beginString: "^[ \\t]*/+[ \\t]*$"
-  regularExpression: true
-  description: "end section"
-- beginString: "^[ \\t]*[-@<>:_^%$]+"
-  regularExpression: true
-  endString: "$"
-  description: "section/heading"
-characters:
-- beginString: "<|"
-  regularExpression: false
-  description: "samp"
-  endString: "|<"
-- beginString: ">|"
-  regularExpression: false
-  description: "kbd"
-  endString: "|>"
-- beginString: "~|"
-  regularExpression: false
-  description: "code"
-  endString: "|~"
-numbers:
-- beginString: "\\\\(?=(?:.|U\\+[0-9A-F]+)\\\\)"
-  regularExpression: true
-  ignoreCase: true
-  endString: "\\\\"
-  description: "escape"
-- beginString: "\\|(?=\\|)"
-  regularExpression: true
-  endString: "(?<=\\|)\\|"
-  description: "br"
-commands:
-- beginString: "#|"
-  description: "b"
-  endString: "|#"
-- beginString: "%|"
-  description: "mark"
-  endString: "|%"
-- beginString: ",|"
-  endString: "|,"
-  description: "sub"
-- beginString: "/|"
-  description: "i"
-  endString: "|/"
-- beginString: ":|"
-  endString: "|:"
-  description: "span"
-- beginString: "=|"
-  description: "s"
-  endString: "|="
-- beginString: "[|"
-  endString: "|["
-  description: "small"
-- beginString: "]|"
-  endString: "|]"
-  description: "abbr"
-- beginString: "^|"
-  endString: "|^"
-  description: "sup"
-- beginString: "_|"
-  endString: "|_"
-  description: "u"
