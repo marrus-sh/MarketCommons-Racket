@@ -261,6 +261,21 @@ If an attribute is specified more than once, its values will be joined with spac
 	]|NASA|]{/National /Aeronautics /and /Space /Administration}
 
 
+## Ruby
+
+Ruby has the following form:
+
+	.|Ruby base | Ruby text|. {@x-lang-base @x-lang-text}
+
+(Language-tagging is optional.)
+Both the ruby base and ruby text can contain inline markup.
+In order to include whitespace at the end of ruby base/text, you need to use inline literals:
+
+	.|Base with space`| |` | Text with space`| |`|.
+
+You can include multiple texts per base, although this may not be well­‑supported in all browsers.
+
+
 ## Multimedia content
 
 Multimedia content has the following form:

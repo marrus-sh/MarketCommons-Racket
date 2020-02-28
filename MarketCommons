@@ -66,6 +66,7 @@
 		[#\/ . Offset] ; <i>
 		[#\< . Output] ; <samp>
 		[#\" . Quote]
+		[#\. . Ruby]
 		[#\[ . Small]
 		[#\: . Span]
 		[#\= . Strikethrough]
@@ -212,6 +213,29 @@
 					[error structtype "Inline type must be provided as a symbol."]
 				)	[error structtype "Inline content must be a list of Inlines or strings."]
 			)	[error structtype "Inline attributes must be a hash mapping symbols to strings."]
+)	)	)
+
+;; Ruby is a special Inline which also has a list of texts (contents or content-language pairs).
+(	struct Ruby Inline [texts]
+	#:transparent
+	#:guard
+	(	λ [contents type attributes texts structtype]
+		(	if
+			(	and
+				[list? texts]
+				(	andmap
+					(	λ [i]
+						(	or
+							[and [list? i] [andmap [λ [ii] [or [Inline? ii] [string? ii]]] i]]
+							(	and
+								[pair? i]
+								[list? [car i]]
+								[andmap [λ [ii] [or [Inline? ii] [string? ii]]] [car i]]
+								[symbol? [cdr i]]
+					)	)	)	texts
+			)	)
+			[values contents type attributes texts]
+			[error structtype "Ruby texts must be a list of inline contents or contents-symbol pairs."]
 )	)	)
 
 ;; Multimedia is a special Inline which also has a list of sources (either URIs or URI-type pairs).
@@ -440,6 +464,74 @@
 			(	append
 				[Inlinify text start element-start outer #:trim-right? #f]
 				(	cond
+					(	[equal? type 'Ruby] ; the element is a ruby element
+						(	let*
+							(	(	langs
+									(	if [hash-has-key? attributes 'lang]
+										[string-split [hash-ref attributes 'lang ""]]
+										'()
+								)	)
+								(	attributes
+									(	if [empty? langs]
+										attributes
+										[hash-set attributes 'lang [first langs]]
+								)	)
+								(	attributes
+									(	if [hash-has-key? attributes 'lang]
+										[hash-set attributes 'xml:lang [hash-ref attributes 'lang ""]]
+										attributes
+								)	)
+								[langs [if [empty? langs] '() [rest langs]]]
+								(	contents
+									(	reverse
+										(	foldl
+											(	λ [i is]
+												(	if [Inline? i]
+													(	cons
+														[append [first is] [list i]]
+														[rest is]
+													)
+													(	let*
+														(	[texts [string-split i #px"(?<!\\\\)\\||\\|(?!\\\\)"]]
+															(	texts
+																(	map
+																	(	λ [t n]
+																		(	list
+																			(	string-trim t
+																				#:left? [not [equal? n 0]]
+																				#:right? [not [equal? n [sub1 [length texts]]]]
+																	)	)	)
+																	texts
+																	[range [length texts]]
+														)	)	)
+														(	append
+															[reverse [rest texts]]
+															(	cons
+																[append [first is] [first texts]]
+																[rest is]
+											)	)	)	)	)
+											[list '()]
+											[Inlinify text [+ element-start 2] [- element-end 2] inner]
+								)	)	)
+								[texts [rest contents]]
+								[contents [first contents]]
+							)
+							(	list
+								(	Ruby
+									contents
+									type
+									attributes
+									(	apply map
+										(	cons [λ [s t] [if t [cons s [string->symbol t]] s]]
+											(	cond
+												(	[> [length texts] [length langs]] ; there are more texts than langs
+													[list texts [append langs [build-list [- [length texts] [length langs]] [const #f]]]]
+												)
+												(	[< [length texts] [length langs]] ; there are more langs than texts
+													[list texts [take langs [length texts]]]
+												)
+												[else [list texts langs]] ; there are the same amount of srcs and types
+					)	)	)	)	)	)	)
 					(	[equal? type 'Media] ; the element is a media element
 						(	let*
 							(	[contents [substring text [+ element-start 2] [- element-end 2]]]
@@ -464,7 +556,7 @@
 													[list srcs [append types [build-list [- [length srcs] [length types]] [const #f]]]]
 												)
 												(	[< [length srcs] [length types]] ; there are more types than srcs
-													[list srcs [take [length srcs] types]]
+													[list srcs [take types [length srcs]]]
 												)
 												[else [list srcs types]] ; there are the same amount of srcs and types
 					)	)	)	)	)	)	)
@@ -916,7 +1008,7 @@
 		(	[Block? element]
 			(	let*
 				(	[type [Block-type element]]
-					[sub? [and [member type '(Definition Term Item OrderedItem)] #t]]
+					[sub? [member type '(Definition Term Item OrderedItem)]]
 					[level [[if sub? add1 identity] level]]
 					(	appendix
 						(	list
@@ -933,6 +1025,7 @@
 							(	if
 								(	and
 									[list? [last xexpr]]
+									[not [empty? [last xexpr]]]
 									[equal? [first [last xexpr]] p]
 								) ; the last X­‑expression is of the correct type
 								(	list-update x [sub1 [length x]]
@@ -951,6 +1044,39 @@
 					)
 					[append xexpr appendix]
 		)	)	)
+		(	[Ruby? element]
+			(	append xexpr
+				(	list
+					(	foldl |Add element to xexpr|
+						(	list
+							'ruby
+							[hash-map [Inline-attributes element] list]
+						)
+						(	append
+							[Inline-contents element]
+							(	foldl
+								(	λ [text elements]
+									(	append elements
+										(	list
+											(	if [and [pair? text] [symbol? [cdr text]]]
+												(	foldl |Add element to xexpr|
+													(	list
+														'rt
+														(	list
+															[list 'lang [symbol->string [cdr text]]]
+															[list 'xml:lang [symbol->string [cdr text]]]
+														)
+													)	[car text]
+												)
+												(	foldl |Add element to xexpr|
+													(	list
+														'rt
+														'()
+													)	text
+								)	)	)	)	)
+								'()
+								[Ruby-texts element]
+		)	)	)	)	)	)
 		(	[Multimedia? element]
 			(	let*
 				(	[sources [Multimedia-sources element]]

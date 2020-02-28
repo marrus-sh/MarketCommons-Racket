@@ -105,6 +105,11 @@ Which continues with this line.
 
 . _ But figcaptions cannot be without figures.
 
+;; This div thing broke something sometime.
+
+:::
++ A list in a div.
+
 $$ Inline formatting
 
 Kinds of inline formatting:
@@ -162,6 +167,14 @@ Literal tags do not nest, and the first closing tag will close the earliest prev
 The closing `| |* |` takes precedence over the opening `| `| |`.
 To get around this, you can escape the pipe in HTML.
 (Media elements have similar behaviour.)
+
+$$ Ruby
+
+Language-tagged ruby: .| base | first | second |. { @en @en-x }
+
+Ruby and markup can be nested: .| .| inner base | inner one |. | outer *| one |* |.
+
+Often you want .| spaces`| |` | spaaaace`| |` |.in Ruby.
 
 $$ Media
 

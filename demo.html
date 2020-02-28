@@ -93,6 +93,13 @@ This page is specifically written to test edge­‑cases; it is not a general in
 			<blockquote>A blockquote in a figure</blockquote>
 			<figcaption>with a caption</figcaption></figure>
 		<p>_ But figcaptions cannot be without figures.</p>
+		<!-- 
+; This div thing broke something sometime.
+		 -->
+		<div>
+			<ul>
+				<li>A list in a div.</li></ul>
+		</div>
 	</section>
 	<section>
 		<h1 aria-level="2">Inline formatting</h1>
@@ -113,6 +120,12 @@ This page is specifically written to test edge­‑cases; it is not a general in
 			<dt>Here is an interesting case: <em>Is the following `| a literal</em> ? |` |*</dt>
 			<dd>
 				<p>Answer: It is not! The closing  |*  takes precedence over the opening  `| . To get around this, you can escape the pipe in HTML. (Media elements have similar behaviour.)</p></dd></dl>
+	</section>
+	<section>
+		<h1 aria-level="2">Ruby</h1>
+		<p>Language-tagged ruby: <ruby lang="en" xml:lang="en">base<rt xml:lang="en-x" lang="en-x">first</rt><rt>second</rt></ruby></p>
+		<p>Ruby and markup can be nested: <ruby><ruby>inner base<rt>inner one</rt></ruby><rt>outer <em>one</em></rt></ruby></p>
+		<p>Often you want <ruby>spaces <rt>spaaaace </rt></ruby>in Ruby.</p>
 	</section>
 	<section>
 		<h1 aria-level="2">Media</h1>

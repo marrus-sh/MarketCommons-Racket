@@ -1,67 +1,10 @@
+commentDelimiters: {}
 attributes:
 - beginString: "(?<=[^\\\\])\\{|\\{(?=[^\\\\])"
   regularExpression: true
   description: "Attribute block"
   endString: "(?<=[^\\\\])\\}|\\}(?=[^\\\\])"
-values:
-- regularExpression: true
-  beginString: "&\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|&)[^|]*\\|"
-  endString: "[^ \\t|][ \\t]*\\|&"
-  description: "media"
 completions: []
-commands:
-- beginString: "#\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|#)"
-  regularExpression: true
-  endString: "\\|#"
-  description: "b"
-- beginString: "%\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|%)"
-  regularExpression: true
-  endString: "\\|%"
-  description: "mark"
-- beginString: ",\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|,)"
-  regularExpression: true
-  description: "sub"
-  endString: "\\|,"
-- beginString: "/\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|/)"
-  regularExpression: true
-  endString: "\\|/"
-  description: "i"
-- beginString: ":\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|:)"
-  regularExpression: true
-  description: "span"
-  endString: "\\|:"
-- beginString: "=\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|=)"
-  regularExpression: true
-  endString: "\\|="
-  description: "s"
-- beginString: "\\[\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\[)"
-  regularExpression: true
-  description: "small"
-  endString: "\\|\\["
-- beginString: "\\]\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\])"
-  regularExpression: true
-  description: "abbr"
-  endString: "\\|\\]"
-- beginString: "\\^\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\^)"
-  regularExpression: true
-  description: "sup"
-  endString: "\\|\\^"
-- beginString: "_\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|_)"
-  regularExpression: true
-  description: "u"
-  endString: "\\|_"
-comments:
-- beginString: ";\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|;)"
-  regularExpression: true
-  endString: "\\|;"
-types:
-- beginString: "^[ \\t]*/+[ \\t]*$"
-  description: "end section"
-  regularExpression: true
-- beginString: "^[ \\t]*[-@<>:_^%$]+"
-  regularExpression: true
-  endString: "$"
-  description: "section/heading"
 keywords:
 - beginString: "!\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|!)"
   regularExpression: true
@@ -92,42 +35,61 @@ keywords:
   description: "ins"
   endString: "\\|\\+"
 - beginString: "^[ \\t]*[\\],?=\\[&+\\.;`](?:[ \\t]*[\\],?=\\[&+\\.;`:])*"
+  regularExpression: true
   description: "block"
+commands:
+- beginString: "#\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|#)"
   regularExpression: true
-extensions:
-- keyString: "market"
-metadata:
-  distributionURL: "https://monsterware.dev/kibimon/MarketCommons-Racket"
-  author: "kibigo!"
-  lastModified: "2020-01-07"
-  version: "0.1.1"
-characters:
-- beginString: "<\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|<)"
+  endString: "\\|#"
+  description: "b"
+- beginString: "%\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|%)"
   regularExpression: true
-  description: "samp"
-  endString: "\\|<"
-- beginString: ">\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|>)"
+  endString: "\\|%"
+  description: "mark"
+- beginString: ",\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|,)"
   regularExpression: true
-  description: "kbd"
-  endString: "\\|>"
-- beginString: "~\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|~)"
+  description: "sub"
+  endString: "\\|,"
+- beginString: "/\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|/)"
   regularExpression: true
-  description: "code"
-  endString: "\\|~"
-variables:
-- beginString: "\\$\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\$)"
+  endString: "\\|/"
+  description: "i"
+- beginString: ":\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|:)"
   regularExpression: true
-  description: "var"
-  endString: "\\|\\$"
-- beginString: "\\?\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\?)"
+  description: "span"
+  endString: "\\|:"
+- beginString: "=\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|=)"
   regularExpression: true
-  endString: "\\|\\?"
-  description: "dfn"
-strings:
-- beginString: "`\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|`)"
+  endString: "\\|="
+  description: "s"
+- beginString: "\\.\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\.)"
   regularExpression: true
-  description: "Literal"
-  endString: "\\|`"
+  endString: "\\|\\."
+  description: "ruby"
+- beginString: "\\[\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\[)"
+  regularExpression: true
+  description: "small"
+  endString: "\\|\\["
+- beginString: "\\]\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\])"
+  regularExpression: true
+  description: "abbr"
+  endString: "\\|\\]"
+- beginString: "\\^\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\^)"
+  regularExpression: true
+  description: "sup"
+  endString: "\\|\\^"
+- beginString: "_\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|_)"
+  regularExpression: true
+  description: "u"
+  endString: "\\|_"
+types:
+- beginString: "^[ \\t]*/+[ \\t]*$"
+  regularExpression: true
+  description: "end section"
+- beginString: "^[ \\t]*[-@<>:_^%$]+"
+  regularExpression: true
+  endString: "$"
+  description: "section/heading"
 numbers:
 - beginString: "\\\\(?=(?:.|U\\+[0-9A-F]+)\\\\)"
   regularExpression: true
@@ -138,7 +100,6 @@ numbers:
   regularExpression: true
   endString: "(?<=\\|)\\|"
   description: "br"
-commentDelimiters: {}
 outlineMenu:
 - beginString: "^([-@<>:_^%$])[ \\t]*(?:\\{.*?\\}[ \\t])?((?:(?!\\1).)+?)[ \\t]*\\1*[
     \\t]*(?:\\{.*?\\}[ \\t]*)?$"
@@ -166,3 +127,46 @@ outlineMenu:
     \\t]*(?:\\{.*?\\}[ \\t]*)?$"
   keyString: "                    $2"
   description: "h6"
+metadata:
+  version: "0.1.1"
+  author: "kibigo!"
+  lastModified: "2020-01-07"
+  distributionURL: "https://monsterware.dev/kibimon/MarketCommons-Racket"
+strings:
+- beginString: "`\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|`)"
+  regularExpression: true
+  description: "Literal"
+  endString: "\\|`"
+variables:
+- beginString: "\\$\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\$)"
+  regularExpression: true
+  description: "var"
+  endString: "\\|\\$"
+- beginString: "\\?\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|\\?)"
+  regularExpression: true
+  endString: "\\|\\?"
+  description: "dfn"
+extensions:
+- keyString: "market"
+characters:
+- beginString: "<\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|<)"
+  regularExpression: true
+  description: "samp"
+  endString: "\\|<"
+- beginString: ">\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|>)"
+  regularExpression: true
+  description: "kbd"
+  endString: "\\|>"
+- beginString: "~\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|~)"
+  regularExpression: true
+  description: "code"
+  endString: "\\|~"
+values:
+- regularExpression: true
+  beginString: "&\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|&)[^|]*\\|"
+  endString: "[^ \\t|][ \\t]*\\|&"
+  description: "media"
+comments:
+- beginString: ";\\|(?=(?:[^\\n]|\\n(?!\\n))*\\|;)"
+  endString: "\\|;"
+  regularExpression: true
